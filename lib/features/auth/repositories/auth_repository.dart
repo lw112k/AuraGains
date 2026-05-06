@@ -11,7 +11,7 @@ class AuthRepository {
   Future<UserModel?> getUserProfile(String userId) async {
     try {
       final data = await _supabase
-          .from('profiles')
+          .from('user')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
@@ -62,11 +62,6 @@ class AuthRepository {
         .insert({
           'user_id': authUser.id,
           'username': username,
-          'email': email,
-          'system_role': 'user',
-          'is_banned': false,
-          'register_date': DateTime.now()
-              .toIso8601String(), // Auto-fill the current timestamp
           // NOTE: We leave gender, date_of_birth, profile_pic_url, and level_id out
           // of this insert. They will default to NULL in your database until the
           // user updates their profile later in the app.

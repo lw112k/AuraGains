@@ -76,7 +76,6 @@ class AuthViewModel extends ChangeNotifier {
     required String password,
     required String username,
   }) async {
-    // ❌ REMOVED: _setLoading(true);
     _setError(null);
 
     try {

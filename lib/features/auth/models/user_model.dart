@@ -14,10 +14,10 @@ class UserModel {
   // Converts Supabase JSON into this Dart Model
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'],
-      email: json['email'],
+      id: json['id'] ?? json['user_id'] ?? '',
+      email: json['email'] ?? '',
       username: json['username'] ?? '',
-      role: json['role'] ?? 'user',
+      role: json['system_role'] ?? 'user',
     );
   }
 }
