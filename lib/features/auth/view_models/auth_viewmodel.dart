@@ -18,10 +18,6 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLoggedIn => _currentUser != null;
 
   // --- Private Helpers ---
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
 
   void _setError(String? message) {
     _errorMessage = message;
@@ -31,19 +27,26 @@ class AuthViewModel extends ChangeNotifier {
   // --- Core Methods ---
   /// Restores session on app startup
   Future<bool> restoreSession() async {
+    // 1. App is booting up! Turn on the global loading screen
+    _isLoading = true;
+    notifyListeners();
+
     final session = _authRepo.currentSession;
 
     if (session != null) {
       _currentUser = await _authRepo.getUserProfile(session.user.id);
-      notifyListeners();
-      return _currentUser != null;
     }
-    return false;
+
+    // 2. We finished checking. Turn off the global loading screen
+    _isLoading = false;
+    notifyListeners();
+
+    return _currentUser != null;
   }
 
   /// Login Logic
   Future<bool> login({required String email, required String password}) async {
-    _setLoading(true);
+    // andle loading locally on the Login button!
     _setError(null);
 
     try {
@@ -52,8 +55,11 @@ class AuthViewModel extends ChangeNotifier {
       if (response.user != null) {
         // Fetch the role/username after successful login
         _currentUser = await _authRepo.getUserProfile(response.user!.id);
-        _setLoading(false);
-        return true; // Main.dart will automatically route them now!
+
+        // notifyListeners() so AuthWrapper knows to send us to UserHome!
+        notifyListeners();
+
+        return true;
       }
     } on AuthException catch (e) {
       _setError(e.message);
@@ -61,17 +67,16 @@ class AuthViewModel extends ChangeNotifier {
       _setError("An unexpected error occurred.");
     }
 
-    _setLoading(false);
     return false;
   }
 
-  /// Registration Logic 
+  /// Registration Logic
   Future<bool> register({
     required String email,
     required String password,
     required String username,
   }) async {
-    _setLoading(true);
+    // ❌ REMOVED: _setLoading(true);
     _setError(null);
 
     try {
@@ -81,7 +86,6 @@ class AuthViewModel extends ChangeNotifier {
         username: username,
       );
 
-      _setLoading(false);
       notifyListeners(); // Main.dart will automatically route them to UserHome!
       return true;
     } on AuthException catch (e) {
@@ -90,7 +94,6 @@ class AuthViewModel extends ChangeNotifier {
       _setError(e.toString());
     }
 
-    _setLoading(false);
     return false;
   }
 
