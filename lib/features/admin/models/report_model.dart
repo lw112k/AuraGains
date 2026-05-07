@@ -34,15 +34,15 @@ class Report {
   factory Report.fromSupabase(Map<String, dynamic> row) {
     final reporter = row['reporter'] as Map<String, dynamic>?;
     return Report(
-      id: row['id'] as String? ?? '',
-      postId: row['post_id'] as String? ?? '',
-      reporterId: row['reporter_id'] as String? ?? '',
+      id: (row['id'] ?? row['report_id'])?.toString() ?? '',
+      postId: (row['post_id'] ?? row['target_id'] ?? row['postId'])?.toString() ?? '',
+      reporterId: (row['reporter_id'] ?? row['report_by'] ?? row['reporterId'])?.toString() ?? '',
       reason: row['reason'] as String? ?? '',
       status: row['status'] as String? ?? 'pending',
-      reportedAt: DateTime.tryParse(row['created_at'] as String? ?? '') ??
+      reportedAt: DateTime.tryParse((row['created_at'] ?? row['create_date']) as String? ?? '') ??
           DateTime.now(),
       reporterUsername: reporter?['username'] as String? ?? 'unknown',
-      reporterAvatar: reporter?['avatar_url'] as String? ?? '',
+      reporterAvatar: (reporter?['avatar_url'] ?? reporter?['profile_pic_url']) as String? ?? '',
     );
   }
 

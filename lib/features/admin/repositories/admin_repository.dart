@@ -17,28 +17,28 @@ class AdminRepository {
   ///
   /// Selects only the `id` column to minimise payload.
   Future<int> fetchUserCount() async {
-    final data = await _client.from('users').select('id');
+    final data = await _client.from('user').select('user_id');
     return data.length;
   }
 
   /// Fetches all users ordered newest-first.
   Future<List<Map<String, dynamic>>> fetchAllUsers() async {
     final data = await _client
-        .from('users')
+        .from('user')
         .select()
-        .order('created_at', ascending: false);
+        .order('register_date', ascending: false);
     return data;
   }
 
   /// Updates a user's role (e.g. promote to 'expert' or demote to 'gym_member').
   Future<void> updateUserRole(String userId, String role) async {
-    await _client.from('users').update({'role': role}).eq('id', userId);
+    await _client.from('user').update({'role': role}).eq('user_id', userId);
   }
 
   /// Fetches the profile row for a specific user id.
   Future<Map<String, dynamic>?> fetchUserById(String userId) async {
     final rows =
-        await _client.from('users').select().eq('id', userId).limit(1);
+        await _client.from('user').select().eq('user_id', userId).limit(1);
     return rows.isNotEmpty ? rows.first : null;
   }
 
@@ -51,20 +51,55 @@ class AdminRepository {
   /// The `reporter` key in each row is populated by the foreign-key join
   /// `reporter:reporter_id(id, username, avatar_url)`.
   Future<List<Map<String, dynamic>>> fetchPendingReports() async {
-    return await _client
-        .from('reports')
-        .select('*, reporter:reporter_id(id, username, avatar_url)')
-        .eq('status', 'pending')
-        .order('created_at', ascending: false);
+    // Fetch all reports (server-side 'status' column may be absent from PostgREST cache)
+    final allReports = await _client
+        .from('report')
+        .select()
+        .order('create_date', ascending: false);
+
+    if (allReports.isEmpty) return <Map<String, dynamic>>[];
+
+    // Keep only pending reports (treat missing status as 'pending')
+    final pendingReports = <Map<String, dynamic>>[];
+    for (final r in allReports) {
+      final row = Map<String, dynamic>.from(r as Map<String, dynamic>);
+      final status = (row['status'] ?? 'pending').toString();
+      if (status == 'pending') pendingReports.add(row);
+    }
+
+    if (pendingReports.isEmpty) return <Map<String, dynamic>>[];
+
+    // Collect reporter IDs and fetch their profiles in one call
+    final reporterIds = <dynamic>{};
+    for (final r in pendingReports) {
+      final rid = r['reporter_id'];
+      if (rid != null) reporterIds.add(rid);
+    }
+
+    final reportersById = <String, Map<String, dynamic>>{};
+    if (reporterIds.isNotEmpty) {
+      final users = await _client
+          .from('users')
+          .select('user_id, username, profile_pic_url')
+          .inFilter('user_id', reporterIds.toList());
+      for (final u in users) {
+        reportersById[(u['user_id'] ?? '').toString()] = Map<String, dynamic>.from(u as Map<String, dynamic>);
+      }
+    }
+
+    // Embed reporter profile into each pending report row
+    for (final row in pendingReports) {
+      final rid = (row['reporter_id'] ?? '').toString();
+      row['reporter'] = reportersById[rid] ?? <String, dynamic>{};
+    }
+
+    return pendingReports;
   }
 
   /// Returns the count of reports currently in 'pending' status.
   Future<int> fetchPendingReportCount() async {
-    final data = await _client
-        .from('reports')
-        .select('id')
-        .eq('status', 'pending');
-    return data.length;
+    final data = await _client.from('report').select('report_id,status');
+    return (data as List).where((r) => ((r['status'] ?? 'pending').toString() == 'pending')).length;
   }
 
   /// Sets a report's status to 'approved'.
@@ -72,18 +107,14 @@ class AdminRepository {
   /// The post associated with the report is NOT deleted automatically;
   /// call [deletePost] separately if required.
   Future<void> approveReport(String reportId) async {
-    await _client
-        .from('reports')
-        .update({'status': 'approved'})
-        .eq('id', reportId);
+    final id = int.tryParse(reportId) ?? 0;
+    await _client.rpc('set_report_status', params: {'p_report_id': id, 'p_status': 'approved'});
   }
 
   /// Sets a report's status to 'rejected' (dismiss without action).
   Future<void> rejectReport(String reportId) async {
-    await _client
-        .from('reports')
-        .update({'status': 'rejected'})
-        .eq('id', reportId);
+    final id = int.tryParse(reportId) ?? 0;
+    await _client.rpc('set_report_status', params: {'p_report_id': id, 'p_status': 'rejected'});
   }
 
   // ─────────────────────────────────────────────────────────
@@ -111,11 +142,20 @@ class AdminRepository {
   /// Only acts on reports with status = 'pending' to avoid overwriting
   /// already-resolved rows.
   Future<void> approveContent(String postId) async {
-    await _client
-        .from('reports')
-        .update({'status': 'rejected'})
-        .eq('post_id', postId)
-        .eq('status', 'pending');
+    // Fetch reports for the post and update only those that are pending
+    final rows = await _client.from('report').select('report_id,status').eq('post_id', postId);
+    final pending = <int>[];
+    for (final r in rows) {
+      final rid = r['report_id'];
+      final status = (r['status'] ?? 'pending').toString();
+      if (status == 'pending') pending.add(rid is int ? rid : int.tryParse(rid.toString()) ?? 0);
+    }
+    if (pending.isEmpty) return;
+    await _client.rpc('set_report_status', params: {'p_report_id': pending.first, 'p_status': 'rejected'});
+    if (pending.length > 1) {
+      // update remaining reports in batch via RPC per-post helper
+      await _client.rpc('set_reports_status_by_post', params: {'p_post_id': int.tryParse(postId) ?? 0, 'p_status': 'rejected'});
+    }
   }
 
   /// Hard-deletes the post AND marks its pending report as 'approved'
@@ -127,11 +167,7 @@ class AdminRepository {
       // Remove the post itself
       _client.from('posts').delete().eq('id', postId),
       // Mark the associated pending report as approved (report upheld)
-      _client
-          .from('reports')
-          .update({'status': 'approved'})
-          .eq('post_id', postId)
-          .eq('status', 'pending'),
+      _client.rpc('set_reports_status_by_post', params: {'p_post_id': int.tryParse(postId) ?? 0, 'p_status': 'approved'}),
     ]);
   }
 
@@ -145,17 +181,17 @@ class AdminRepository {
   /// Format: "suspended: <reason>"
   Future<void> suspendUser(String userId, String reason) async {
     await _client
-        .from('users')
-        .update({'level': 'suspended: $reason'})
-        .eq('id', userId);
+      .from('user')
+      .update({'is_banned': true})
+      .eq('user_id', userId);
   }
 
   /// Permanently bans a user by setting `users.level = 'banned'`.
   Future<void> banUser(String userId) async {
     await _client
-        .from('users')
-        .update({'level': 'banned'})
-        .eq('id', userId);
+      .from('user')
+      .update({'is_banned': true})
+      .eq('user_id', userId);
   }
 
   /// Promotes a user to expert by setting `users.role = 'expert'`.
@@ -225,7 +261,7 @@ class AdminRepository {
           .update({'status': 'approved'})
           .eq('id', applicationId),
       // Promote user role to expert
-      _client.from('users').update({'role': 'expert'}).eq('id', userId),
+      _client.from('user').update({'role': 'expert'}).eq('user_id', userId),
     ]);
   }
 
@@ -268,8 +304,8 @@ class AdminRepository {
   /// of flagging content — helps the admin make an informed decision.
   Future<int> fetchReportCountByUserId(String userId) async {
     final data = await _client
-        .from('reports')
-        .select('id')
+        .from('report')
+        .select('report_id')
         .eq('reporter_id', userId);
     return data.length;
   }
@@ -280,11 +316,7 @@ class AdminRepository {
 
   /// Returns the count of users whose `level` does NOT contain 'suspended' or 'banned'.
   Future<int> fetchActiveUserCount() async {
-    final data = await _client
-        .from('users')
-        .select('id')
-        .not('level', 'ilike', '%suspended%')
-        .not('level', 'ilike', '%banned%');
+    final data = await _client.from('user').select('user_id').eq('is_banned', false);
     return data.length;
   }
 
@@ -305,17 +337,14 @@ class AdminRepository {
 
   /// Returns the total row count for the `reports` table (all statuses).
   Future<int> fetchTotalReportCount() async {
-    final data = await _client.from('reports').select('id');
+    final data = await _client.from('report').select('report_id');
     return data.length;
   }
 
   /// Returns the count of reports whose status is NOT 'pending' (i.e. resolved).
   Future<int> fetchResolvedReportCount() async {
-    final data = await _client
-        .from('reports')
-        .select('id')
-        .neq('status', 'pending');
-    return data.length;
+    final data = await _client.from('report').select('report_id,status');
+    return (data as List).where((r) => ((r['status'] ?? 'pending').toString() != 'pending')).length;
   }
 
   /// Returns the count of users currently suspended or banned.
@@ -323,10 +352,7 @@ class AdminRepository {
   /// Uses an OR filter so a single user is counted only once even if the
   /// `level` column somehow contains both keywords.
   Future<int> fetchModerationActionCount() async {
-    final data = await _client
-        .from('users')
-        .select('id')
-        .or('level.ilike.%suspended%,level.ilike.%banned%');
+    final data = await _client.from('user').select('user_id').eq('is_banned', true);
     return data.length;
   }
 
@@ -338,14 +364,13 @@ class AdminRepository {
   Future<List<double>> fetchWeeklyUserGrowth() async {
     final cutoff = DateTime.now().subtract(const Duration(days: 49));
     final data = await _client
-        .from('users')
-        .select('created_at')
-        .gte('created_at', cutoff.toIso8601String());
+      .from('user')
+      .select('created_at,register_date');
 
     final counts = List<int>.filled(7, 0);
     final now = DateTime.now();
     for (final row in data) {
-      final dt = DateTime.tryParse(row['created_at'] as String? ?? '');
+      final dt = DateTime.tryParse((row['created_at'] ?? row['register_date']) as String? ?? '');
       if (dt == null) continue;
       final daysAgo = now.difference(dt).inDays;
       final weekIndex = (6 - (daysAgo ~/ 7)).clamp(0, 6);
@@ -397,7 +422,7 @@ class AdminRepository {
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
-          table: 'reports',
+          table: 'report',
           callback: (_) => onChanged(),
         )
         .subscribe();

@@ -10,11 +10,22 @@ class AuthRepository {
   /// Fetches the user's custom data (role, username, etc.) from the profiles table
   Future<UserModel?> getUserProfile(String userId) async {
     try {
-      final data = await _supabase
+        // Try to find the profile by the public `user_id` first (common
+        // mapping in this project). If that returns nothing, fall back to
+        // the `auth_id` column which stores the Supabase Auth user UUID.
+        var data = await _supabase
           .from('user')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
+
+        if (data == null) {
+          data = await _supabase
+            .from('user')
+            .select()
+            .eq('auth_id', userId)
+            .maybeSingle();
+        }
 
       if (data != null) {
         return UserModel.fromJson(data);
@@ -60,11 +71,9 @@ class AuthRepository {
     final Map<String, dynamic> profileData = await _supabase
         .from('user')
         .insert({
-          'user_id': authUser.id,
+          'auth_id': authUser.id,
           'username': username,
-          // NOTE: We leave gender, date_of_birth, profile_pic_url, and level_id out
-          // of this insert. They will default to NULL in your database until the
-          // user updates their profile later in the app.
+          'email': email,
         })
         .select()
         .single();

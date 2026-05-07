@@ -9,7 +9,7 @@ class ProfileService {
     final response = await _supabase
         .from('user')
         .select()
-        .eq('id', uid)
+        .eq('user_id', uid)
         .single();
     
     return UserModel.fromJson(response);
@@ -18,9 +18,9 @@ class ProfileService {
   // 2. Update Profile (Name, Bio, Avatar URL)
   Future<void> updateProfile(String uid, Map<String, dynamic> data) async {
     await _supabase
-        .from('user')
-        .update(data)
-        .eq('id', uid);
+      .from('user')
+      .update(data)
+      .eq('user_id', uid);
   }
 
   // 3. Get User Posts

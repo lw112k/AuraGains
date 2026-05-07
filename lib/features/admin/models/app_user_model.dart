@@ -26,12 +26,12 @@ class AppUser {
   /// Builds an AppUser from a Supabase row.
   factory AppUser.fromSupabase(Map<String, dynamic> row) {
     return AppUser(
-      id: row['id'] as String? ?? '',
+      id: (row['id'] ?? row['user_id'] ?? '').toString(),
       username: row['username'] as String? ?? '',
       email: row['email'] as String? ?? '',
       avatarUrl: row['avatar_url'] as String? ?? '',
       level: row['level'] as String? ?? '',
-      role: row['role'] as String? ?? 'gym_member',
+      role: row['role'] as String? ?? row['system_role'] as String? ?? 'gym_member',
     );
   }
 
