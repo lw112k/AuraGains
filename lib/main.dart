@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
-import 'package:device_preview/device_preview.dart'; 
+import 'package:device_preview/device_preview.dart';
 
 // --- Services ---
 // The foundational layer. This interacts directly with external systems (Supabase).
@@ -15,8 +15,9 @@ import 'features/auth/view_models/auth_viewmodel.dart';
 // The "UI" layer. These are the different screens the user can see.
 import 'core/widgets/splash_screen.dart';
 import 'features/auth/views/login_view.dart';
-import 'features/admin/views/admin_home.dart';
-import 'features/homepage/views/user_home.dart';
+import 'features/admin/views/admin_view.dart';
+// Updated import to point to your new combined frame widget!
+import 'core/widgets/user_homepage_frame.dart';
 
 /// The entry point of the AuraGains application.
 /// It initializes background services and starts the Global Auth Broadcast.
@@ -90,19 +91,20 @@ class AuthWrapper extends StatelessWidget {
 
     // CASE 2: No active session or user is logged out.
     // Interacts with [Login] view, forcing unauthenticated users to authenticate.
-    if (authViewModel.currentUser == null) return const Login();
+    if (authViewModel.currentUser == null) return const LoginView();
 
     // CASE 3: Session restored! Implement Role-Based Access Control.
     // Interacts with the 'role' string inside the [UserModel].
     // This safely separates the Admin and User features into their own environments.
     switch (authViewModel.currentUser!.role) {
-      case 'admin':
-        return const AdminHome();
+      // case 'admin':
+      //   return const AdminView();
+        // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
       case 'user':
-        return const UserHome();
+        return const UserHomepageFrame();
       default:
         // Security Fallback: If a role is corrupted or unrecognized, force a login.
-        return const Login();
+        return const LoginView();
     }
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../repositories/auth_repository.dart';
-import '../models/user_model.dart';
+import '../models/auth_model.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepo = AuthRepository();
@@ -9,12 +9,12 @@ class AuthViewModel extends ChangeNotifier {
   // --- State Variables ---
   bool _isLoading = false;
   String? _errorMessage;
-  UserModel? _currentUser;
+  AuthModel? _currentUser;
 
   // --- Getters ---
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  UserModel? get currentUser => _currentUser;
+  AuthModel? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
 
   // --- Private Helpers ---

@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/user_model.dart';
+import '../models/auth_model.dart';
 
 class AuthRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
@@ -8,7 +8,7 @@ class AuthRepository {
   Session? get currentSession => _supabase.auth.currentSession;
 
   /// Fetches the user's custom data (role, username, etc.) from the profiles table
-  Future<UserModel?> getUserProfile(String userId) async {
+  Future<AuthModel?> getUserProfile(String userId) async {
     try {
       final data = await _supabase
           .from('user')
@@ -17,7 +17,7 @@ class AuthRepository {
           .maybeSingle();
 
       if (data != null) {
-        return UserModel.fromJson(data);
+        return AuthModel.fromJson(data);
       }
     } catch (e) {
       print("Error fetching profile: $e");
@@ -34,7 +34,7 @@ class AuthRepository {
   }
 
   /// Register
-  Future<UserModel> registerUser({
+  Future<AuthModel> registerUser({
     required String email,
     required String password,
     required String username,
@@ -70,7 +70,7 @@ class AuthRepository {
         .single();
 
     // 3. Return the fully formed user model
-    return UserModel.fromJson(profileData);
+    return AuthModel.fromJson(profileData);
   }
 
   /// Clears the session from the device
