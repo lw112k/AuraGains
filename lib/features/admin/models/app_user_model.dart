@@ -35,12 +35,12 @@ class AppUser {
     );
   }
 
-  AppUser copyWith({String? role, String? level}) => AppUser(
+  AppUser copyWith({String? role}) => AppUser(
         id: id,
         username: username,
         email: email,
         avatarUrl: avatarUrl,
-        level: level ?? this.level,
+        level: level,
         role: role ?? this.role,
       );
 
