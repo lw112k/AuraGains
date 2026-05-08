@@ -38,12 +38,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _error = null;
     });
     try {
-        final rows = await _client
-          .from('user')
-          .select()
-          .order('created_at', ascending: false);
+      // Avoid server-side ORDER BY on `created_at` (some PostgREST setups
+      // can produce "column user.created_at does not exist"). Fetch rows
+      // unsorted and sort in Dart to keep behaviour consistent without
+      // changing the database.
+      final rows = await _client.from('user').select();
+      final rowsList = (rows as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
+      rowsList.sort((a, b) {
+        final aDt = DateTime.tryParse((a['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final bDt = DateTime.tryParse((b['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return bDt.compareTo(aDt); // newest-first
+      });
+
       setState(() {
-        _users = (rows as List).map((r) => AppUser.fromSupabase(r as Map<String, dynamic>)).toList();
+        _users = rowsList.map((r) => AppUser.fromSupabase(r)).toList();
         _isLoading = false;
       });
     } catch (e) {

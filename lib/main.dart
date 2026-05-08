@@ -15,7 +15,8 @@ import 'features/auth/view_models/auth_viewmodel.dart';
 // The "UI" layer. These are the different screens the user can see.
 import 'core/widgets/splash_screen.dart';
 import 'features/auth/views/login_view.dart';
-import 'features/admin/views/admin_view.dart';
+import 'features/admin/views/admin_shell.dart';
+import 'providers/admin_provider.dart';
 // Updated import to point to your new combined frame widget!
 import 'core/widgets/user_homepage_frame.dart';
 
@@ -97,9 +98,9 @@ class AuthWrapper extends StatelessWidget {
     // Interacts with the 'role' string inside the [UserModel].
     // This safely separates the Admin and User features into their own environments.
     switch (authViewModel.currentUser!.role) {
-      // case 'admin':
-      //   return const AdminView();
-        // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
+      case 'admin':
+        return const AdminView();
+      // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
       case 'user':
         return const UserHomepageFrame();
       default:

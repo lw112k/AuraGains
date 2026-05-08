@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/constants.dart';
+import '../../../providers/admin_provider.dart';
 import 'admin_content_screen.dart';
-import 'admin_panel_screen.dart';
+import 'admin_view.dart';
 import 'applications_screen.dart';
 import 'user_management_screen.dart';
 
@@ -145,6 +147,21 @@ class _NavItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Lightweight wrapper used by `main.dart`'s `case 'admin'` branch.
+/// Keeps the existing `AdminShell` behaviour but ensures the
+/// required provider is created in one place.
+class AdminView extends StatelessWidget {
+  const AdminView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AdminProvider()..loadData(),
+      child: const AdminShell(),
     );
   }
 }

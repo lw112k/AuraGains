@@ -23,11 +23,18 @@ class AdminRepository {
 
   /// Fetches all users ordered newest-first.
   Future<List<Map<String, dynamic>>> fetchAllUsers() async {
-    final data = await _client
-      .from('user')
-      .select()
-      .order('created_at', ascending: false);
-    return data;
+    // Some PostgREST setups can return an error when using server-side
+    // ORDER BY on a table named `user` (e.g. "column user.created_at does not exist").
+    // Fetch rows unsorted and perform the ordering client-side to avoid
+    // touching the database schema.
+    final data = await _client.from('user').select();
+    final list = (data as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
+    list.sort((a, b) {
+      final aDt = DateTime.tryParse((a['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bDt = DateTime.tryParse((b['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return bDt.compareTo(aDt);
+    });
+    return list;
   }
 
   /// Updates a user's role (e.g. promote to 'expert' or demote to 'gym_member').
