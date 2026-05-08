@@ -1,18 +1,18 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../auth/models/user_model.dart';
+import '../../auth/models/auth_model.dart';
 
 class ProfileService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   // 1. Fetch User Profile
-  Future<UserModel> getProfile(String uid) async {
+  Future<AuthModel> getProfile(String uid) async {
     final response = await _supabase
         .from('user')
         .select()
         .eq('user_id', uid)
         .single();
     
-    return UserModel.fromJson(response);
+    return AuthModel.fromJson(response);
   }
 
   // 2. Update Profile (Name, Bio, Avatar URL)
@@ -29,8 +29,8 @@ class ProfileService {
     final response = await _supabase
         .from('post')
         .select()
-        .eq('author_id', uid)
-        .order('created_at', ascending: false);
+        .eq('post_by', uid)
+        .order('create_date', ascending: false);
     
     return List<Map<String, dynamic>>.from(response);
   }
@@ -39,9 +39,8 @@ class ProfileService {
   Future<int> getFollowerCount(String uid) async {
     final response = await _supabase
         .from('friends')
-        .select('requester_id')
-        .eq('receiver_id', uid)
-        .eq('status', 'accepted')
+        .select('follower')
+        .eq('following', uid)
         .count(CountOption.exact);
         
     return response.count ?? 0;
@@ -52,20 +51,18 @@ class ProfileService {
     final response = await _supabase
         .from('friends')
         .select()
-        .eq('requester_id', currentUid)
-        .eq('receiver_id', targetUid)
+        .eq('follower', currentUid)
+        .eq('following', targetUid)
         .maybeSingle();
         
-    // If a record exists and status is accepted, they are following
-    return response != null && response['status'] == 'accepted';
+    return response != null;
   }
 
   // 6. Follow User
   Future<void> follow(String currentUid, String targetUid) async {
     await _supabase.from('friends').insert({
-      'requester_id': currentUid,
-      'receiver_id': targetUid,
-      'status': 'accepted', // or 'pending' depending on your app's friend request logic
+      'follower': currentUid,
+      'following': targetUid,
     });
   }
 
@@ -74,7 +71,7 @@ class ProfileService {
     await _supabase
         .from('friends')
         .delete()
-        .eq('requester_id', currentUid)
-        .eq('receiver_id', targetUid);
+        .eq('follower', currentUid)
+        .eq('following', targetUid);
   }
 }

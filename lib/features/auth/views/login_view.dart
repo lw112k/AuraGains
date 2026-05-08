@@ -6,14 +6,14 @@ import 'register_view.dart';
 // =========================================================
 // LOGIN VIEW (Handles both Splash & Login States)
 // =========================================================
-class Login extends StatefulWidget {
-  const Login({super.key});
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
+  State<LoginView> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
+class _LoginState extends State<LoginView> {
   // --- UI STATE ---
   bool _showWelcome = true;
   bool _isButtonLoading = false;

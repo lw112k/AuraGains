@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 
 import '../repositories/admin_repository.dart';
+import '../models/trainer_application_model.dart';
 
-/// ViewModel for the admin analytics dashboard.
+/// Lightweight ChangeNotifier for admin operations that supplement
+/// [AdminProvider].
 ///
-/// Follows the same [ChangeNotifier] pattern as [AuthViewModel]:
-///   - Exposes an [isLoading] flag and an [error] string.
-///   - Calls [loadAnalytics] once on creation and again on pull-to-refresh.
-///   - All Supabase I/O is delegated to [AdminRepository].
+/// Handles trainer-application state for [ApplicationsScreen] and
+/// [VerifyTrainerScreen].  For dashboard + reports state, see [AdminProvider].
 class AdminViewModel extends ChangeNotifier {
   final AdminRepository _repo = AdminRepository();
 
@@ -15,78 +15,75 @@ class AdminViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
-
-  // Metric counters
-  int _totalUsers = 0;
-  int _activeUsers = 0;
-  int _totalPosts = 0;
-  int _completedChallenges = 0;
-  int _reportsReceived = 0;
-  int _reportsResolved = 0;
-  int _moderationActions = 0;
-
-  // Chart data — 7 normalised values each in [0.05, 1.0]
-  List<double> _weeklyGrowthPoints = const [
-    0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05
-  ];
-  List<double> _dailyPostBars = const [
-    0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05
-  ];
+  List<TrainerApplication> _applications = [];
 
   // ── Getters ────────────────────────────────────────────────────────────────
 
   bool get isLoading => _isLoading;
   String? get error => _error;
+  List<TrainerApplication> get applications =>
+      List.unmodifiable(_applications);
 
-  int get totalUsers => _totalUsers;
-  int get activeUsers => _activeUsers;
-  int get totalPosts => _totalPosts;
-  int get completedChallenges => _completedChallenges;
-  int get reportsReceived => _reportsReceived;
-  int get reportsResolved => _reportsResolved;
-  int get moderationActions => _moderationActions;
+  List<TrainerApplication> get pending =>
+      _applications.where((a) => a.isPending).toList();
 
-  List<double> get weeklyGrowthPoints => _weeklyGrowthPoints;
-  List<double> get dailyPostBars => _dailyPostBars;
+  List<TrainerApplication> get approved =>
+      _applications.where((a) => a.isApproved).toList();
+
+  List<TrainerApplication> get rejected =>
+      _applications.where((a) => a.isRejected).toList();
 
   // ── Data loading ───────────────────────────────────────────────────────────
 
-  /// Fetches all analytics data from Supabase in parallel.
-  ///
-  /// Safe to call from [initState] or a pull-to-refresh handler.
-  Future<void> loadAnalytics() async {
+  Future<void> loadApplications() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
-      // Fire all read-only queries in parallel to minimise total latency.
-      final results = await Future.wait([
-        _repo.fetchUserCount(),                // 0 — total users
-        _repo.fetchActiveUserCount(),           // 1 — non-suspended/banned
-        _repo.fetchPostCount(),                 // 2 — posts table count
-        _repo.fetchCompletedChallengeCount(),   // 3 — approved challenge subs
-        _repo.fetchTotalReportCount(),          // 4 — all reports
-        _repo.fetchResolvedReportCount(),       // 5 — non-pending reports
-        _repo.fetchModerationActionCount(),     // 6 — suspended + banned users
-        _repo.fetchWeeklyUserGrowth(),          // 7 — 7-week growth chart
-        _repo.fetchDailyPostCounts(),           // 8 — 7-day post chart
-      ]);
-
-      _totalUsers          = results[0] as int;
-      _activeUsers         = results[1] as int;
-      _totalPosts          = results[2] as int;
-      _completedChallenges = results[3] as int;
-      _reportsReceived     = results[4] as int;
-      _reportsResolved     = results[5] as int;
-      _moderationActions   = results[6] as int;
-      _weeklyGrowthPoints  = results[7] as List<double>;
-      _dailyPostBars       = results[8] as List<double>;
+      final rows = await _repo.fetchAllApplications();
+      _applications = rows
+          .map((r) => TrainerApplication.fromSupabase(r))
+          .toList();
     } catch (e) {
       _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
+
+  /// Approves an application and promotes the applicant to 'expert'.
+  Future<void> approveApplication(
+      String applicationId, String userId) async {
+    try {
+      await _repo.approveApplication(applicationId, userId);
+      _applications = _applications.map((a) {
+        if (a.id == applicationId) return a.copyWith(status: 'approved');
+        return a;
+      }).toList();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Rejects a trainer application.
+  Future<void> rejectApplication(String applicationId) async {
+    try {
+      await _repo.rejectApplication(applicationId);
+      _applications = _applications.map((a) {
+        if (a.id == applicationId) return a.copyWith(status: 'rejected');
+        return a;
+      }).toList();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
     }
   }
 }

@@ -23,13 +23,13 @@ class ReportCard extends StatelessWidget {
   const ReportCard({
     super.key,
     required this.report,
-    required this.onTap,
     required this.onApprove,
     required this.onReject,
+    this.onTap,
   });
 
   final Report report;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
@@ -112,12 +112,11 @@ class ReportCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.orangeBg,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text(
                     'FLAGGED',
-                    style: AppTextStyles.monoLabel
-                        .copyWith(color: AppColors.orange),
+                    style: AppTextStyles.caption.copyWith(color: AppColors.warning),
                   ),
                 ),
               ],
@@ -148,15 +147,12 @@ class ReportCard extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: onTap,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.white,
+                      foregroundColor: AppColors.textPrimary,
                       side: const BorderSide(color: AppColors.border),
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadius.buttonBorder,
-                      ),
                     ),
-                    child: Text('VIEW', style: AppTextStyles.monoSmall),
+                    child: const Text('VIEW', style: AppTextStyles.labelMedium),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -171,11 +167,8 @@ class ReportCard extends StatelessWidget {
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadius.buttonBorder,
-                      ),
                     ),
-                    child: Text('APPROVE', style: AppTextStyles.monoSmall),
+                    child: const Text('APPROVE', style: AppTextStyles.labelMedium),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -190,11 +183,8 @@ class ReportCard extends StatelessWidget {
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadius.buttonBorder,
-                      ),
                     ),
-                    child: Text('REJECT', style: AppTextStyles.monoSmall),
+                    child: const Text('REJECT', style: AppTextStyles.labelMedium),
                   ),
                 ),
               ],

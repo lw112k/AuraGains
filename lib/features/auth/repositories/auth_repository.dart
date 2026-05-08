@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/user_model.dart';
+import '../models/auth_model.dart';
 
 class AuthRepository {
   SupabaseClient get _supabase => Supabase.instance.client;
@@ -8,27 +8,16 @@ class AuthRepository {
   Session? get currentSession => _supabase.auth.currentSession;
 
   /// Fetches the user's custom data (role, username, etc.) from the profiles table
-  Future<UserModel?> getUserProfile(String userId) async {
+  Future<AuthModel?> getUserProfile(String userId) async {
     try {
-        // Try to find the profile by the public `user_id` first (common
-        // mapping in this project). If that returns nothing, fall back to
-        // the `auth_id` column which stores the Supabase Auth user UUID.
-        var data = await _supabase
+      final data = await _supabase
           .from('user')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (data == null) {
-          data = await _supabase
-            .from('user')
-            .select()
-            .eq('auth_id', userId)
-            .maybeSingle();
-        }
-
       if (data != null) {
-        return UserModel.fromJson(data);
+        return AuthModel.fromJson(data);
       }
     } catch (e) {
       print("Error fetching profile: $e");
@@ -45,7 +34,7 @@ class AuthRepository {
   }
 
   /// Register
-  Future<UserModel> registerUser({
+  Future<AuthModel> registerUser({
     required String email,
     required String password,
     required String username,
@@ -71,15 +60,17 @@ class AuthRepository {
     final Map<String, dynamic> profileData = await _supabase
         .from('user')
         .insert({
-          'auth_id': authUser.id,
+          'user_id': authUser.id,
           'username': username,
-          'email': email,
+          // NOTE: We leave gender, date_of_birth, profile_pic_url, and level_id out
+          // of this insert. They will default to NULL in your database until the
+          // user updates their profile later in the app.
         })
         .select()
         .single();
 
     // 3. Return the fully formed user model
-    return UserModel.fromJson(profileData);
+    return AuthModel.fromJson(profileData);
   }
 
   /// Clears the session from the device

@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../features/admin/views/admin_panel_screen.dart';
+import '../../features/admin/views/admin_shell.dart';
 import '../../features/admin/views/content_detail_screen.dart';
-import '../../features/admin/views/user_management_screen.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
-import '../../features/homepage/views/user_home.dart';
+import '../../features/homepage/views/home_view.dart';
 import '../../core/widgets/splash_screen.dart';
 import '../../providers/admin_provider.dart';
 
@@ -55,7 +54,7 @@ abstract final class AppRouter {
       redirect: (context, state) {
         final isLoading = authViewModel.isLoading;
         final isLoggedIn = authViewModel.currentUser != null;
-        final path = Uri.parse(state.location).path;
+        final path = state.uri.path;
 
         // While the session is being restored, stay on the root splash.
         if (isLoading) return null;
@@ -84,7 +83,7 @@ abstract final class AppRouter {
         // Unauthenticated entry point.
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, __) => const Login(),
+          builder: (_, __) => const LoginView(),
         ),
 
         // Standard user home.
@@ -94,29 +93,19 @@ abstract final class AppRouter {
         ),
 
         // ── Admin routes ────────────────────────────────────────────────
+        // The shell owns the bottom nav bar (Content | Dashboard | Users).
         GoRoute(
           path: AppRoutes.adminPanel,
           builder: (_, __) => ChangeNotifierProvider(
             create: (_) => AdminProvider()..loadData(),
-            child: const AdminPanelScreen(),
+            child: const AdminShell(),
           ),
           routes: [
-            GoRoute(
-              path: 'users',
-              builder: (_, __) => const UserManagementScreen(),
-            ),
-            // /admin/reports — reuses the admin panel (pending reports queue).
-            GoRoute(
-              path: 'reports',
-              builder: (_, __) => ChangeNotifierProvider(
-                create: (_) => AdminProvider()..loadData(),
-                child: const AdminPanelScreen(),
-              ),
-            ),
+            // Deep-link into the content-detail screen from outside the shell.
             GoRoute(
               path: 'content/:id',
               builder: (_, state) => ContentDetailScreen(
-                postId: state.params['id']!,
+                postId: state.pathParameters['id']!,
               ),
             ),
           ],

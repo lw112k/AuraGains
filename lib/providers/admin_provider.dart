@@ -101,7 +101,7 @@ class AdminProvider extends ChangeNotifier {
         .onPostgresChanges(
           event: PostgresChangeEvent.all,
           schema: 'public',
-          table: 'reports',
+          table: 'report',
           callback: (_) => loadData(),
         )
         .subscribe();

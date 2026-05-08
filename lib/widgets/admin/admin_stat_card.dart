@@ -44,32 +44,38 @@ enum AdminStatVariant {
 class AdminStatCard extends StatelessWidget {
   const AdminStatCard({
     super.key,
-    required this.label,
+    required this.title,
     required this.value,
     required this.icon,
+    this.isAlert = false,
     this.variant = AdminStatVariant.normal,
   });
 
-  final String label;
+  final String title;
   final String value;
   final IconData icon;
+  final bool isAlert;
   final AdminStatVariant variant;
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  Color get _accentColor => switch (variant) {
-        AdminStatVariant.success => AppColors.acid,
-        AdminStatVariant.warning => AppColors.warning,
-        AdminStatVariant.danger  => AppColors.error,
-        _                        => AppColors.acid,
-      };
+  Color get _accentColor => isAlert
+      ? AppColors.warning
+      : switch (variant) {
+          AdminStatVariant.success => AppColors.acid,
+          AdminStatVariant.warning => AppColors.warning,
+          AdminStatVariant.danger  => AppColors.error,
+          _                        => AppColors.acid,
+        };
 
-  Color get _bgColor => switch (variant) {
-        AdminStatVariant.success => AppColors.acidBg,
-        AdminStatVariant.warning => AppColors.orangeBg,
-        AdminStatVariant.danger  => AppColors.errorBg,
-        _                        => AppColors.acidBgLight,
-      };
+  Color get _bgColor => isAlert
+      ? AppColors.orangeBg
+      : switch (variant) {
+          AdminStatVariant.success => AppColors.acidBg,
+          AdminStatVariant.warning => AppColors.orangeBg,
+          AdminStatVariant.danger  => AppColors.errorBg,
+          _                        => AppColors.acidBgLight,
+        };
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
@@ -104,7 +110,7 @@ class AdminStatCard extends StatelessWidget {
               Text(value, style: AppTextStyles.statMedium),
               const SizedBox(height: AppSpacing.xxs),
               Text(
-                label,
+                title,
                 style: AppTextStyles.monoLabel
                     .copyWith(color: AppColors.muted),
                 maxLines: 1,

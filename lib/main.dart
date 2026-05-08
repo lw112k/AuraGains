@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:device_preview/device_preview.dart';
 
@@ -8,12 +7,17 @@ import 'package:device_preview/device_preview.dart';
 // The foundational layer. This interacts directly with external systems (Supabase).
 import 'core/services/database_connection.dart';
 
-// --- Routes ---
-import 'core/routes/app_routes.dart';
-
 // --- ViewModels ---
 // The "State" layer. This acts as the global broadcast station holding user data.
 import 'features/auth/view_models/auth_viewmodel.dart';
+
+// --- Views ---
+// The "UI" layer. These are the different screens the user can see.
+import 'core/widgets/splash_screen.dart';
+import 'features/auth/views/login_view.dart';
+import 'features/admin/views/admin_view.dart';
+// Updated import to point to your new combined frame widget!
+import 'core/widgets/user_homepage_frame.dart';
 
 /// The entry point of the AuraGains application.
 /// It initializes background services and starts the Global Auth Broadcast.
@@ -49,41 +53,58 @@ void main() async {
 }
 
 /// The root material application widget.
-/// Uses [MaterialApp.router] + [GoRouter] for type-safe, auth-aware navigation.
-class AuraGainsApp extends StatefulWidget {
+/// Sets up the global theme and delegates initial routing to the [AuthWrapper].
+class AuraGainsApp extends StatelessWidget {
   const AuraGainsApp({super.key});
 
   @override
-  State<AuraGainsApp> createState() => _AuraGainsAppState();
-}
-
-class _AuraGainsAppState extends State<AuraGainsApp> {
-  late final GoRouter _router;
-
-  @override
-  void initState() {
-    super.initState();
-    // context.read is safe here: MultiProvider is an ancestor in the tree.
-    final authViewModel = context.read<AuthViewModel>();
-    _router = AppRouter.createRouter(authViewModel);
-  }
-
-  @override
-  void dispose() {
-    _router.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
 
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
 
       theme: ThemeData.dark(), // Global dark theme for AuraGains
-      routerConfig: _router,
+      // Instead of hardcoding a starting screen, we hand control to our router.
+      home: const AuthWrapper(),
     );
+  }
+}
+
+/// The Traffic Controller for the entire app.
+/// It listens to the [AuthViewModel] broadcast and dynamically routes the user
+/// based on their current authentication state and database role.
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Listens to the global state variables (isLoading, currentUser).
+    // Whenever AuthViewModel calls [notifyListeners()], this widget automatically rebuilds.
+    final authViewModel = context.watch<AuthViewModel>();
+
+    // CASE 1: Data is still fetching.
+    // Interacts with [SplashScreen] to provide a visual buffer so the app doesn't crash
+    // or show blank screens while waiting for Supabase to return the user's role.
+    if (authViewModel.isLoading) return const SplashScreen();
+
+    // CASE 2: No active session or user is logged out.
+    // Interacts with [Login] view, forcing unauthenticated users to authenticate.
+    if (authViewModel.currentUser == null) return const LoginView();
+
+    // CASE 3: Session restored! Implement Role-Based Access Control.
+    // Interacts with the 'role' string inside the [UserModel].
+    // This safely separates the Admin and User features into their own environments.
+    switch (authViewModel.currentUser!.role) {
+      // case 'admin':
+      //   return const AdminView();
+        // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
+      case 'user':
+        return const UserHomepageFrame();
+      default:
+        // Security Fallback: If a role is corrupted or unrecognized, force a login.
+        return const LoginView();
+    }
   }
 }
