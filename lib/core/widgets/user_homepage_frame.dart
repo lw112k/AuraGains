@@ -1,26 +1,27 @@
+import 'package:auragains/features/challenges/views/challenge_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
-/// 
+///
 /// The Master Layout Shell for all authenticated users in AuraGains.
-/// 
+///
 /// PURPOSE:
-/// This widget acts as the persistent "Frame" of the app. It holds the 
-/// top [AppBar] (Header) and the [BottomNavigationBar] (Footer) in place, 
+/// This widget acts as the persistent "Frame" of the app. It holds the
+/// top [AppBar] (Header) and the [BottomNavigationBar] (Footer) in place,
 /// ensuring they never flicker or reload when the user navigates.
-/// 
+///
 /// HOW IT WORKS:
-/// Instead of pushing new screens, this frame uses an [IndexedStack] to 
-/// simply swap out the middle content based on the selected Navbar tab. 
-/// This keeps the state of all 5 tabs "alive" in the background (e.g., 
+/// Instead of pushing new screens, this frame uses an [IndexedStack] to
+/// simply swap out the middle content based on the selected Navbar tab.
+/// This keeps the state of all 5 tabs "alive" in the background (e.g.,
 /// scroll positions won't reset when switching tabs).
-/// 
+///
 /// TEAM INSTRUCTIONS:
-/// Do NOT add Scaffolds, AppBars, or NavBars to your individual feature 
-/// screens (Home, Challenge, Post, Message). Just build your raw UI 
+/// Do NOT add Scaffolds, AppBars, or NavBars to your individual feature
+/// screens (Home, Challenge, Post, Message). Just build your raw UI
 /// content, and the Lead Developer will plug it into the [_pages] array below.
 /// =====================================================================
 
@@ -34,14 +35,12 @@ class UserHomepageFrame extends StatefulWidget {
 class _UserHomepageFrameState extends State<UserHomepageFrame> {
   int _currentIndex = 0;
 
-  // 💡 THE REDIRECTION TARGETS
+  // THE REDIRECTION TARGETS
   // REMEMBER Teammates: When your feature is complete, replace the placeholder
   // Text widget below with your actual View class (e.g., HomeView()).
   final List<Widget> _pages = [
     const Center(child: Text('Homepage')), // Index 0: Replace with HomeView()
-    const Center(
-      child: Text('Challenge'),
-    ), // Index 1: Replace with ChallengeView()
+    const ChallengeView(), // Index 1: Replace with ChallengeView()
     const Center(child: Text('Post')), // Index 2: Replace with PostView()
     const Center(child: Text('Message')), // Index 3: Replace with MessageView()
     const Center(child: Text('Expert')), // Index 4: Replace with ExpertView()
@@ -52,38 +51,35 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     final user = context.watch<AuthViewModel>().currentUser;
 
     return Scaffold(
+      // Background is handled globally by app_theme.dart Scaffold color
       appBar: AppBar(
-        centerTitle: false,
-        title: const Text(
-          'AuraGains',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        // Title style is handled globally by app_theme.dart AppBar theme
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: Colors.white10, height: 1.0),
         ),
+        title: const Text('AURAGAINS'),
         actions: [
-          // Search Icon
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              // Replace with SearchView()
               print("Search tapped");
             },
           ),
-          // Profile Icon with Dropdown Menu
           Padding(
             padding: const EdgeInsets.only(right: 16.0, left: 8.0),
             child: PopupMenuButton<String>(
-              // Pushes the menu slightly below the avatar
               offset: const Offset(0, 45),
-              // Gives the dropdown nice rounded corners
+              // 💡 Local styling restored for the popup menu
+              color: const Color(0xFF1E1E1E),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               onSelected: (String value) {
                 if (value == 'profile') {
-                  // Replace with UserProfileView()
                   print("Navigate to Profile");
                 } else if (value == 'logout') {
-                  // Remember our rule! Use context.read() for actions!
-                  // Note: Adjust 'logout()' to whatever your actual logout method is named in your ViewModel
                   context.read<AuthViewModel>().logout();
                 }
               },
@@ -96,7 +92,7 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
-                const PopupMenuDivider(), // Adds a clean separating line
+                const PopupMenuDivider(),
                 const PopupMenuItem<String>(
                   value: 'logout',
                   child: ListTile(
@@ -112,7 +108,6 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
                   ),
                 ),
               ],
-              // The CircleAvatar becomes the "Button" that triggers the menu
               child: CircleAvatar(
                 radius: 16,
                 backgroundColor: Colors.blueAccent,
@@ -131,6 +126,7 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
           ),
         ],
       ),
+      // IndexedStack keeps the state of all 5 tabs "alive"
       body: IndexedStack(index: _currentIndex, children: _pages),
       bottomNavigationBar: _buildBottomNavBar(),
     );
@@ -141,7 +137,9 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
       onTap: (index) => setState(() => _currentIndex = index),
+      // 💡 Local styling restored for the navigation bar
       type: BottomNavigationBarType.fixed,
+      backgroundColor: const Color(0xFF1E1E1E),
       selectedItemColor: Colors.blueAccent,
       unselectedItemColor: Colors.grey,
       showSelectedLabels: false,

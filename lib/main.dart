@@ -15,10 +15,12 @@ import 'features/auth/view_models/auth_viewmodel.dart';
 // The "UI" layer. These are the different screens the user can see.
 import 'core/widgets/splash_screen.dart';
 import 'features/auth/views/login_view.dart';
-import 'features/admin/views/admin_shell.dart';
-import 'providers/admin_provider.dart';
-// Updated import to point to your new combined frame widget!
+import 'features/admin/views/admin_view.dart';
+import 'features/challenges/view_models/challenge_viewmodel.dart';
 import 'core/widgets/user_homepage_frame.dart';
+
+// --- Theme ---
+import 'core/theme/app_theme.dart';
 
 /// The entry point of the AuraGains application.
 /// It initializes background services and starts the Global Auth Broadcast.
@@ -33,20 +35,52 @@ void main() async {
   // This MUST finish before runApp is called so the ViewModel has a database to talk to.
   await DatabaseConnection.initialize();
 
-  // 3. App Launch & State Injection
+  // =======================================================================
+  // 3. APP LAUNCH & THE "RADIO TOWER" (GLOBAL STATE)
+  // =======================================================================
+  // TEAMMATES, READ THIS CAREFULLY! 📢
+  // Think of `MultiProvider` as a giant Radio Tower at the top of a mountain.
+  // Every ViewModel we put in this list is a "Radio Station".
+  // By plugging them in here at the very root of the app, EVERY screen inside
+  // AuraGains can easily "tune in" to get data (using context.watch) without
+  // us having to pass variables between a hundred different files.
   runApp(
-    // Added DevicePreview Wrapper here
+    // DevicePreview lets us test how the app looks on different phone sizes
+    // right on our computer screens. It automatically hides in the final .exe build.
     DevicePreview(
-      enabled: !kReleaseMode, // Automatically turns off when you build the .exe
+      enabled: !kReleaseMode,
       builder: (context) => MultiProvider(
+        // 👇 THE MASTER PROVIDER LIST 👇
+        // CRITICAL RULE: If you build a new ViewModel for your feature,
+        // YOU MUST ADD IT TO THIS LIST! If you don't, your screen will crash
+        // with a "ProviderNotFoundException" red screen of death.
         providers: [
-          // Initializes [AuthViewModel] at the absolute root of the app.
+          // 1. Auth Station (Master Access)
           // The cascade operator (..restoreSession()) triggers the login check
           // the exact millisecond the app is born, pulling data into global memory.
           ChangeNotifierProvider(
             create: (_) => AuthViewModel()..restoreSession(),
           ),
+
+          // 2. Challenge Station
+          // Handles data for Browse, Leaderboard, and Video Submissions.
+          ChangeNotifierProvider(create: (_) => ChallengeViewModel()),
+
+          // -----------------------------------------------------------
+          // 🚨 TODO FOR TEAMMATES: ADD YOUR VIEWMODELS HERE! 🚨
+          // -----------------------------------------------------------
+          // Just copy the format above. For example:
+          //
+          // Post Feature:
+          // ChangeNotifierProvider(create: (_) => PostViewModel()),
+          //
+          // Message Feature:
+          // ChangeNotifierProvider(create: (_) => MessageViewModel()),
+          // -----------------------------------------------------------
         ],
+
+        // After building the Radio Tower and turning on all the stations,
+        // we finally boot up the actual visual UI.
         child: const AuraGainsApp(),
       ),
     ),
@@ -66,7 +100,9 @@ class AuraGainsApp extends StatelessWidget {
       locale: DevicePreview.locale(context),
       builder: DevicePreview.appBuilder,
 
-      theme: ThemeData.dark(), // Global dark theme for AuraGains
+      // Injecting our custom global theme from app_theme
+      theme: AppTheme.darkTheme,
+
       // Instead of hardcoding a starting screen, we hand control to our router.
       home: const AuthWrapper(),
     );
@@ -98,8 +134,8 @@ class AuthWrapper extends StatelessWidget {
     // Interacts with the 'role' string inside the [UserModel].
     // This safely separates the Admin and User features into their own environments.
     switch (authViewModel.currentUser!.role) {
-      case 'admin':
-        return const AdminView();
+      // case 'admin':
+      //   return const AdminView();
       // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
       case 'user':
         return const UserHomepageFrame();
