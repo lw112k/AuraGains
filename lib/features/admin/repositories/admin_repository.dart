@@ -1,453 +1,369 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/database_connection.dart';
+import '../models/admin_model.dart';
 
-import 'package:auragains/core/services/database_connection.dart';
-
-/// Data-access layer for all admin operations.
-///
-/// All methods use [DatabaseConnection.client] — no Supabase
-/// re-initialization happens here.
+// =====================================================================
+// ADMIN REPOSITORY
+// Single admin data-access layer. Uses DatabaseConnection.client only.
+// =====================================================================
 class AdminRepository {
-  final _client = DatabaseConnection.client;
+  SupabaseClient get _db => DatabaseConnection.client;
 
-  // ─────────────────────────────────────────────────────────
-  // USERS
-  // ─────────────────────────────────────────────────────────
+  // Cached column info for the `report` table. Some installs use different
+  // column names (e.g. `status`, `report_status`, `is_resolved`, `post_id`).
+  String? _reportStatusColumn;
+  Set<String>? _reportColumns;
 
-  /// Returns the total count of rows in the `users` table.
-  ///
-  /// Selects only the `id` column to minimise payload.
-  Future<int> fetchUserCount() async {
-    final data = await _client.from('user').select('user_id');
-    return data.length;
-  }
+  final Map<String, Set<String>> _tableColumnsCache = {};
 
-  /// Fetches all users ordered newest-first.
-  Future<List<Map<String, dynamic>>> fetchAllUsers() async {
-    // Some PostgREST setups can return an error when using server-side
-    // ORDER BY on a table named `user` (e.g. "column user.created_at does not exist").
-    // Fetch rows unsorted and perform the ordering client-side to avoid
-    // touching the database schema.
-    final data = await _client.from('user').select();
-    final list = (data as List).map((r) => Map<String, dynamic>.from(r as Map)).toList();
-    list.sort((a, b) {
-      final aDt = DateTime.tryParse((a['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-      final bDt = DateTime.tryParse((b['created_at'] ?? '') as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0);
-      return bDt.compareTo(aDt);
-    });
-    return list;
-  }
-
-  /// Updates a user's role (e.g. promote to 'expert' or demote to 'gym_member').
-  Future<void> updateUserRole(String userId, String role) async {
-    await _client.from('user').update({'system_role': role}).eq('user_id', userId);
-  }
-
-  /// Fetches the profile row for a specific user id.
-  Future<Map<String, dynamic>?> fetchUserById(String userId) async {
-    final rows =
-        await _client.from('user').select().eq('user_id', userId).limit(1);
-    return rows.isNotEmpty ? rows.first : null;
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // REPORTS
-  // ─────────────────────────────────────────────────────────
-
-  /// Fetches all pending reports joined with the reporter's user profile.
-  ///
-  /// The `reporter` key in each row is populated by the foreign-key join
-  /// `reporter:reporter_id(id, username, avatar_url)`.
-  Future<List<Map<String, dynamic>>> fetchPendingReports() async {
-    // Fetch all reports (server-side 'status' column may be absent from PostgREST cache)
-    final allReports = await _client
-        .from('report')
-        .select()
-        .order('create_date', ascending: false);
-
-    if (allReports.isEmpty) return <Map<String, dynamic>>[];
-
-    // Keep only pending reports (treat missing status as 'pending')
-    final pendingReports = <Map<String, dynamic>>[];
-    for (final r in allReports) {
-      final row = Map<String, dynamic>.from(r as Map<String, dynamic>);
-      final status = (row['status'] ?? 'pending').toString();
-      if (status == 'pending') pendingReports.add(row);
+  Future<Set<String>> _ensureTableColumns(String table) async {
+    if (_tableColumnsCache.containsKey(table)) return _tableColumnsCache[table]!;
+    // Attempt to fetch a single row sample; don't let failures here abort the
+    // metadata discovery flow (some DB setups restrict direct selects).
+    Set<String> cols = <String>{};
+    Map<String, dynamic>? sampleRow;
+    try {
+      final raw = await _db.from(table).select().limit(1).maybeSingle();
+      if (raw is Map<String, dynamic>) sampleRow = raw;
+    } catch (_) {
+      // ignore - continue to information_schema / fallback
     }
 
-    if (pendingReports.isEmpty) return <Map<String, dynamic>>[];
+    if (sampleRow != null) {
+      cols = sampleRow.keys.toSet();
+    } else {
+      try {
+        final colsResp = await _db
+            .from('information_schema.columns')
+            .select('column_name')
+            .eq('table_name', table)
+            .eq('table_schema', 'public');
+        if (colsResp is List && colsResp.isNotEmpty) {
+          cols = colsResp
+              .map((c) => (c as Map<String, dynamic>)['column_name'] as String)
+              .toSet();
+        }
+      } catch (_) {
+        // ignore - information_schema may be restricted for some Supabase setups
+      }
 
-    // Collect reporter IDs and fetch their profiles in one call
-    final reporterIds = <dynamic>{};
-    for (final r in pendingReports) {
-      final rid = r['reporter_id'];
-      if (rid != null) reporterIds.add(rid);
-    }
-
-    final reportersById = <String, Map<String, dynamic>>{};
-    if (reporterIds.isNotEmpty) {
-      final users = await _client
-          .from('user')
-          .select('user_id, username, profile_pic_url')
-          .inFilter('user_id', reporterIds.toList());
-      for (final u in users) {
-        reportersById[(u['user_id'] ?? '').toString()] = Map<String, dynamic>.from(u as Map<String, dynamic>);
+      // If lookup didn't populate cols (no rows, permissions, or other issues),
+      // fall back to the authoritative schema provided earlier.
+      if (cols.isEmpty) {
+        if (table == 'report') {
+          cols = {'report_id', 'report_by', 'target_type', 'target_id', 'reason', 'create_date'};
+        } else if (table == 'user') {
+          cols = {'user_id', 'username', 'profile_pic_url', 'system_role', 'gender', 'level_id', 'date_of_birth', 'is_banned'};
+        } else if (table == 'expert_application') {
+          cols = {'expert_application_id', 'user_id', 'expert_title', 'experience_year', 'experience_description', 'application_status', 'create_date'};
+        } else if (table == 'post') {
+          cols = {'post_id', 'post_by', 'create_date', 'post_like', 'title', 'description', 'thumbnail_url', 'post_type', 'visibility'};
+        } else if (table == 'post_media') {
+          cols = {'media_id', 'post_id', 'media_url', 'media_type', 'display_order'};
+        } else if (table == 'expert_application_image') {
+          cols = {'expert_application_image_id', 'expert_application_id', 'image_url'};
+        }
       }
     }
 
-    // Embed reporter profile into each pending report row
-    for (final row in pendingReports) {
-      final rid = (row['reporter_id'] ?? '').toString();
-      row['reporter'] = reportersById[rid] ?? <String, dynamic>{};
-    }
-
-    return pendingReports;
+    _tableColumnsCache[table] = cols;
+    // Helpful debug output when running against different Supabase schemas
+    try {
+      // ignore: avoid_print
+      print('AdminRepository: columns for $table => ${cols.join(', ')}');
+    } catch (_) {}
+    return cols;
   }
 
-  /// Returns the count of reports currently in 'pending' status.
-  Future<int> fetchPendingReportCount() async {
-    final data = await _client.from('report').select('report_id,status');
-    return (data as List).where((r) => ((r['status'] ?? 'pending').toString() == 'pending')).length;
+  Future<void> _ensureReportColumns() async {
+    if (_reportColumns != null) return;
+    _reportColumns = await _ensureTableColumns('report');
+    final statusKey = _reportColumns!.firstWhere(
+      (k) => RegExp(r'(status|state|resolved|is_resolved|report_status)', caseSensitive: false).hasMatch(k),
+      orElse: () => '',
+    );
+    if (statusKey.isNotEmpty) _reportStatusColumn = statusKey;
   }
 
-  /// Sets a report's status to 'approved'.
-  ///
-  /// The post associated with the report is NOT deleted automatically;
-  /// call [deletePost] separately if required.
-  Future<void> approveReport(String reportId) async {
-    final id = int.tryParse(reportId) ?? 0;
-    await _client.rpc('set_report_status', params: {'p_report_id': id, 'p_status': 'approved'});
+  // ─── Dashboard ───────────────────────────────────────────────────────
+
+  Future<AdminDashboardStats> fetchDashboardStats() async {
+    final userCols = await _ensureTableColumns('user');
+    final userWanted = ['user_id', 'is_banned'];
+    final userSelect = userWanted.where((f) => userCols.contains(f)).join(', ');
+    final usersRaw = userSelect.isNotEmpty
+      ? await _db.from('user').select(userSelect)
+      : await _db.from('user').select('user_id');
+
+    await _ensureReportColumns();
+    final reportsRaw = _reportStatusColumn != null && _reportColumns!.contains(_reportStatusColumn)
+      ? await _db.from('report').select('report_id, $_reportStatusColumn')
+      : await _db.from('report').select('report_id');
+
+    final appCols = await _ensureTableColumns('expert_application');
+    final appWanted = ['expert_application_id', 'application_status'];
+    final appSelect = appWanted.where((f) => appCols.contains(f)).join(', ');
+    final appsRaw = appSelect.isNotEmpty
+      ? await _db.from('expert_application').select(appSelect)
+      : await _db.from('expert_application').select('expert_application_id');
+
+    final postCols = await _ensureTableColumns('post');
+    final List postsRaw = postCols.contains('post_id')
+      ? await _db.from('post').select('post_id')
+      : <dynamic>[];
+
+    final totalUsers = usersRaw.length;
+    final bannedUsers = userCols.contains('is_banned')
+      ? usersRaw.where((u) => u['is_banned'] == true).length
+      : 0;
+    final pendingReports = _reportStatusColumn != null
+      ? reportsRaw.where((r) => (r[_reportStatusColumn] ?? 'pending') == 'pending').length
+      : reportsRaw.length;
+    final pendingApplications = appCols.contains('application_status')
+      ? appsRaw.where((a) => (a['application_status'] ?? 'pending') == 'pending').length
+      : appsRaw.length;
+    final totalPosts = postsRaw.length;
+
+    return AdminDashboardStats(
+      totalUsers: totalUsers,
+      bannedUsers: bannedUsers,
+      pendingReports: pendingReports,
+      pendingApplications: pendingApplications,
+      totalPosts: totalPosts,
+    );
   }
 
-  /// Sets a report's status to 'rejected' (dismiss without action).
-  Future<void> rejectReport(String reportId) async {
-    final id = int.tryParse(reportId) ?? 0;
-    await _client.rpc('set_report_status', params: {'p_report_id': id, 'p_status': 'rejected'});
+  // ─── Users ───────────────────────────────────────────────────────────
+
+  Future<List<AdminUserModel>> fetchUsers() async {
+    final cols = await _ensureTableColumns('user');
+    final wanted = [
+      'user_id',
+      'username',
+      'email',
+      'profile_pic_url',
+      'system_role',
+      'is_banned',
+      'register_date',
+      'gender'
+    ];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('user_id');
+    dynamic query = _db.from('user').select(fields.join(', '));
+    if (cols.contains('register_date')) query = query.order('register_date', ascending: false);
+    final data = await query;
+    try {
+      // ignore: avoid_print
+      print('AdminRepository.fetchApplications: dataType=${data.runtimeType} count=${data is List ? data.length : 'unknown'} sample=${data is List && data.isNotEmpty ? data.first : null}');
+    } catch (_) {}
+    try {
+      // ignore: avoid_print
+      print('AdminRepository.fetchUsers: data type=${data.runtimeType} count=${data is List ? data.length : 'unknown'} sample=${data is List && data.isNotEmpty ? data.first : null}');
+    } catch (_) {}
+    final List<AdminUserModel> list = (data as List).map<AdminUserModel>((e) => AdminUserModel.fromJson(e as Map<String, dynamic>)).toList();
+    return list;
   }
 
-  // ─────────────────────────────────────────────────────────
-  // POSTS
-  // ─────────────────────────────────────────────────────────
-
-  /// Hard-deletes a post by id (called alongside approveReport when the
-  /// admin chooses to remove the flagged content).
-  Future<void> deletePost(String postId) async {
-    await _client.from('post').delete().eq('post_id', postId);
-  }
-
-  /// Fetches a single post row by [postId].
-  ///
-  /// Returns null if the post does not exist or has already been deleted.
-  Future<Map<String, dynamic>?> fetchPostById(String postId) async {
-    final rows =
-        await _client.from('post').select().eq('post_id', postId).limit(1);
-    return rows.isNotEmpty ? rows.first : null;
-  }
-
-  /// Clears the pending report linked to [postId] by setting its status to
-  /// 'rejected' (dismiss — content is approved / no action taken).
-  ///
-  /// Only acts on reports with status = 'pending' to avoid overwriting
-  /// already-resolved rows.
-  Future<void> approveContent(String postId) async {
-    // Fetch reports for the post and update only those that are pending
-    final rows = await _client.from('report').select('report_id,status').eq('post_id', postId);
-    final pending = <int>[];
-    for (final r in rows) {
-      final rid = r['report_id'];
-      final status = (r['status'] ?? 'pending').toString();
-      if (status == 'pending') pending.add(rid is int ? rid : int.tryParse(rid.toString()) ?? 0);
-    }
-    if (pending.isEmpty) return;
-    await _client.rpc('set_report_status', params: {'p_report_id': pending.first, 'p_status': 'rejected'});
-    if (pending.length > 1) {
-      // update remaining reports in batch via RPC per-post helper
-      await _client.rpc('set_reports_status_by_post', params: {'p_post_id': int.tryParse(postId) ?? 0, 'p_status': 'rejected'});
-    }
-  }
-
-  /// Hard-deletes the post AND marks its pending report as 'approved'
-  /// (report upheld — content removed).
-  ///
-  /// Both operations run in parallel for efficiency.
-  Future<void> deleteContent(String postId) async {
-    await Future.wait([
-      // Remove the post itself
-      _client.from('post').delete().eq('post_id', postId),
-      // Mark the associated pending report as approved (report upheld)
-      _client.rpc('set_reports_status_by_post', params: {'p_post_id': int.tryParse(postId) ?? 0, 'p_status': 'approved'}),
-    ]);
-  }
-
-  /// Suspends a user by appending a 'suspended' marker to their `level` field.
-  ///
-  /// The `level` column is repurposed for suspension tracking by the team's
-  /// existing convention (see [AppUser.isAdmin] — level contains 'suspended'
-  /// or 'banned' substrings).
-  ///
-  /// [reason] is stored alongside in `level` so the reason is auditable.
-  /// Format: "suspended: <reason>"
-  Future<void> suspendUser(String userId, String reason) async {
-    await _client
-      .from('user')
-      .update({'is_banned': true})
-      .eq('user_id', userId);
-  }
-
-  /// Permanently bans a user by setting `users.level = 'banned'`.
   Future<void> banUser(String userId) async {
-    await _client
-      .from('user')
-      .update({'is_banned': true})
-      .eq('user_id', userId);
+    final cols = await _ensureTableColumns('user');
+    if (!cols.contains('is_banned')) return;
+    await _db.from('user').update({'is_banned': true}).eq('user_id', userId);
   }
 
-  /// Promotes a user to expert by setting `users.role = 'expert'`.
-  ///
-  /// Named wrapper around [updateUserRole] for clarity at call sites.
-  Future<void> grantExpertBadge(String userId) async {
-    await updateUserRole(userId, 'expert');
+  Future<void> unbanUser(String userId) async {
+    final cols = await _ensureTableColumns('user');
+    if (!cols.contains('is_banned')) return;
+    await _db.from('user').update({'is_banned': false}).eq('user_id', userId);
   }
 
-  /// Demotes a user from expert back to standard member.
-  ///
-  /// Named wrapper around [updateUserRole] for clarity at call sites.
-  Future<void> revokeExpertBadge(String userId) async {
-    await updateUserRole(userId, 'gym_member');
+  Future<void> setSystemRole(String userId, String role) async {
+    final cols = await _ensureTableColumns('user');
+    if (!cols.contains('system_role')) return;
+    await _db.from('user').update({'system_role': role}).eq('user_id', userId);
   }
 
-  /// Returns a [RealtimeChannel] that fires [onChanged] whenever any row
-  /// in the `users` table is inserted, updated, or deleted.
-  ///
-  /// Used by [UserManagementViewModel] to keep the list live.
-  /// The caller is responsible for calling `.unsubscribe()` on dispose.
-  RealtimeChannel subscribeToUsers(void Function() onChanged) {
-    return _client
-        .channel('admin-users-changes')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'user',
-          callback: (_) => onChanged(),
-        )
-        .subscribe();
+  // ─── Reports ─────────────────────────────────────────────────────────
+
+  Future<List<AdminReportModel>> fetchReports({String? status}) async {
+    await _ensureReportColumns();
+
+    final wanted = [
+      'report_id',
+      'report_by',
+      'target_type',
+      'target_id',
+      'reason',
+      'create_date'
+    ];
+    final fields = <String>[];
+    for (final w in wanted) {
+      if (_reportColumns!.contains(w)) fields.add(w);
+    }
+    if (_reportStatusColumn != null && _reportColumns!.contains(_reportStatusColumn)) {
+      fields.add(_reportStatusColumn!);
+    }
+    if (_reportColumns!.contains('post_id')) fields.add('post_id');
+
+    // Ensure we select at least report_id
+    if (fields.isEmpty) fields.add('report_id');
+
+    dynamic query = _db.from('report').select(fields.join(', '));
+
+    if (status != null && status != 'all' && _reportStatusColumn != null) {
+        query = query.eq(_reportStatusColumn!, status);
+        final data = await query.order('create_date', ascending: false);
+        return (data as List).map<AdminReportModel>((e) => AdminReportModel.fromJson(e as Map<String, dynamic>)).toList();
+    }
+
+    // Fallback: fetch without server-side status filtering and do a best-effort client-side filter
+    final data = await query.order('create_date', ascending: false);
+    try {
+      // ignore: avoid_print
+      print('AdminRepository.fetchReports: fields=${fields.join(', ')} dataType=${data.runtimeType} count=${data is List ? data.length : 'unknown'} sample=${data is List && data.isNotEmpty ? data.first : null}');
+    } catch (_) {}
+    final list = (data as List).map<AdminReportModel>((e) => AdminReportModel.fromJson(e as Map<String, dynamic>)).toList();
+    if (status != null && status != 'all' && _reportStatusColumn == null) {
+      return list.where((r) => (r.status ?? 'pending') == status).toList();
+    }
+    return list;
   }
 
-  // ─────────────────────────────────────────────────────────
-  // TRAINER APPLICATIONS
-  // ─────────────────────────────────────────────────────────
-
-  /// Fetches ALL trainer applications across all statuses, newest-first.
-  ///
-  /// Used by [ApplicationsViewModel] to populate All / Pending / Approved tabs
-  /// with client-side filtering.
-  Future<List<Map<String, dynamic>>> fetchAllApplications() async {
-    return await _client
-        .from('expert_application')
-        .select()
-        .order('create_date', ascending: false);
+  Future<void> updateReportStatus(int reportId, String status) async {
+    await _ensureReportColumns();
+    if (_reportStatusColumn != null) {
+      await _db
+          .from('report')
+          .update({_reportStatusColumn!: status})
+          .eq('report_id', reportId);
+    } else {
+      // No status-like column detected; do nothing (avoid throwing). Caller will update local state optimistically.
+    }
   }
 
-  /// Fetches all trainer applications with status 'pending'.
-  Future<List<Map<String, dynamic>>> fetchPendingApplications() async {
-    return await _client
-        .from('expert_application')
-        .select()
-        .eq('application_status', 'pending')
-        .order('create_date', ascending: false);
+  // ─── Posts / Content ─────────────────────────────────────────────────
+
+  Future<AdminPostModel?> fetchPost(int postId) async {
+    final cols = await _ensureTableColumns('post');
+    final wanted = [
+      'post_id',
+      'post_by',
+      'title',
+      'description',
+      'thumbnail_url',
+      'post_type',
+      'post_like',
+      'create_date'
+    ];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('post_id');
+    dynamic query = _db.from('post').select(fields.join(', ')).eq('post_id', postId);
+    final data = await query.maybeSingle();
+    if (data == null) return null;
+    return AdminPostModel.fromJson(data as Map<String, dynamic>);
   }
 
-  /// Approves a trainer application and promotes the user's role to 'expert'.
-  ///
-  /// Runs both updates in parallel for efficiency.
-  Future<void> approveApplication(
-      String applicationId, String userId) async {
-    await Future.wait([
-      // Mark application approved
-      _client
+  Future<AdminUserModel?> fetchUser(String userId) async {
+    final cols = await _ensureTableColumns('user');
+    final wanted = [
+      'user_id',
+      'username',
+      'email',
+      'profile_pic_url',
+      'system_role',
+      'is_banned',
+      'register_date',
+      'gender'
+    ];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('user_id');
+    final data = await _db.from('user').select(fields.join(', ')).eq('user_id', userId).maybeSingle();
+    if (data == null) return null;
+    return AdminUserModel.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<List<String>> fetchPostMediaUrls(int postId) async {
+    final cols = await _ensureTableColumns('post_media');
+    if (!cols.contains('media_url')) return [];
+    dynamic query = _db.from('post_media').select('media_url').eq('post_id', postId);
+    if (cols.contains('display_order')) query = query.order('display_order');
+    final data = await query;
+    return (data as List).map<String>((e) => e['media_url'] as String).where((url) => url.isNotEmpty).toList();
+  }
+
+  Future<void> deletePost(int postId) async {
+    try {
+      await _db.from('post').delete().eq('post_id', postId);
+    } catch (_) {
+      // If post_id doesn't exist or delete fails, swallow to avoid crashing admin UI
+    }
+  }
+
+  // ─── Expert Applications ─────────────────────────────────────────────
+
+  Future<List<AdminApplicationModel>> fetchApplications() async {
+    final cols = await _ensureTableColumns('expert_application');
+    final wanted = [
+      'expert_application_id',
+      'user_id',
+      'expert_title',
+      'experience_year',
+      'experience_years',
+      'experience_description',
+      'application_status',
+      'create_date'
+    ];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('expert_application_id');
+    dynamic query = _db.from('expert_application').select(fields.join(', '));
+    if (cols.contains('create_date')) query = query.order('create_date', ascending: false);
+    final data = await query;
+
+    final List<AdminApplicationModel> result = [];
+    for (final row in data) {
+      final userId = row['user_id'] != null ? row['user_id'].toString() : '';
+      final appId = row['expert_application_id'] != null ? row['expert_application_id'].toString() : '';
+
+      final userColsLocal = await _ensureTableColumns('user');
+      final userSelectLocal = ['username', 'email', 'profile_pic_url'].where((f) => userColsLocal.contains(f)).join(', ');
+      final userRaw = userSelectLocal.isNotEmpty
+          ? await _db.from('user').select(userSelectLocal).eq('user_id', userId).maybeSingle()
+          : null;
+
+      final imgCols = await _ensureTableColumns('expert_application_image');
+      final imagesRaw = imgCols.contains('image_url')
+          ? await _db.from('expert_application_image').select('image_url').eq('expert_application_id', appId)
+          : <dynamic>[];
+      final imageUrls = imagesRaw.map((e) => e['image_url'] as String).toList();
+
+      result.add(
+        AdminApplicationModel.fromJson(
+          row as Map<String, dynamic>,
+          imageUrls: imageUrls,
+          userJson: userRaw as Map<String, dynamic>?,
+        ),
+      );
+    }
+    return result;
+  }
+
+  Future<void> approveApplication(String applicationId, String userId) async {
+    final appCols = await _ensureTableColumns('expert_application');
+    if (appCols.contains('application_status')) {
+      await _db
           .from('expert_application')
           .update({'application_status': 'approved'})
-          .eq('expert_application_id', applicationId),
-      // Promote user role to expert
-      _client.from('user').update({'system_role': 'expert'}).eq('user_id', userId),
-    ]);
+          .eq('expert_application_id', applicationId);
+    }
+    final userCols = await _ensureTableColumns('user');
+    if (userCols.contains('system_role')) {
+      await _db.from('user').update({'system_role': 'expert'}).eq('user_id', userId);
+    }
   }
 
-  /// Rejects a trainer application.
   Future<void> rejectApplication(String applicationId) async {
-    await _client
-        .from('expert_application')
-        .update({'application_status': 'rejected'})
-        .eq('expert_application_id', applicationId);
-  }
-
-  /// Fetches a single trainer application row by its [applicationId].
-  ///
-  /// Returns null if no matching row exists.
-  /// Used by [VerifyTrainerViewModel] to load the detail screen.
-  Future<Map<String, dynamic>?> fetchApplicationById(
-      String applicationId) async {
-    final rows = await _client
-        .from('expert_application')
-        .select()
-        .eq('expert_application_id', applicationId)
-        .limit(1);
-    return rows.isNotEmpty ? rows.first : null;
-  }
-
-  /// Returns the number of posts authored by [userId].
-  ///
-  /// Queries `posts` where `user_id = userId`; selects only `id` to minimise
-  /// payload.
-  Future<int> fetchPostCountByUserId(String userId) async {
-    final data =
-        await _client.from('post').select('post_id').eq('post_by', userId);
-    return data.length;
-  }
-
-  /// Returns the number of reports filed BY [userId] (i.e. they are the
-  /// reporter, not the reported party).
-  ///
-  /// Used on the verify-trainer screen to show if the applicant has a history
-  /// of flagging content — helps the admin make an informed decision.
-  Future<int> fetchReportCountByUserId(String userId) async {
-    final data = await _client
-        .from('report')
-        .select('report_id')
-        .eq('reporter_id', userId);
-    return data.length;
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // ANALYTICS
-  // ─────────────────────────────────────────────────────────
-
-  /// Returns the count of users whose `level` does NOT contain 'suspended' or 'banned'.
-  Future<int> fetchActiveUserCount() async {
-    final data = await _client.from('user').select('user_id').eq('is_banned', false);
-    return data.length;
-  }
-
-  /// Returns the total number of rows in the `posts` table.
-  Future<int> fetchPostCount() async {
-    final data = await _client.from('post').select('post_id');
-    return data.length;
-  }
-
-  /// Returns the count of `challenge_submissions` with status = 'approved'.
-  Future<int> fetchCompletedChallengeCount() async {
-    final data = await _client
-        .from('challenge_submission')
-        .select('chall_submission_id')
-        .filter('reject_reason', 'is', null);
-    return data.length;
-  }
-
-  /// Returns the total row count for the `reports` table (all statuses).
-  Future<int> fetchTotalReportCount() async {
-    final data = await _client.from('report').select('report_id');
-    return data.length;
-  }
-
-  /// Returns the count of reports whose status is NOT 'pending' (i.e. resolved).
-  Future<int> fetchResolvedReportCount() async {
-    final data = await _client.from('report').select('report_id,status');
-    return (data as List).where((r) => ((r['status'] ?? 'pending').toString() != 'pending')).length;
-  }
-
-  /// Returns the count of users currently suspended or banned.
-  ///
-  /// Uses an OR filter so a single user is counted only once even if the
-  /// `level` column somehow contains both keywords.
-  Future<int> fetchModerationActionCount() async {
-    final data = await _client.from('user').select('user_id').eq('is_banned', true);
-    return data.length;
-  }
-
-  /// Fetches `created_at` timestamps for every user created in the last 7 weeks
-  /// and returns a 7-element list of values normalised to [0.0, 1.0].
-  ///
-  /// Index 0 = oldest week, index 6 = current (most recent) week.
-  /// Returns all-zeros if no users exist in the window.
-  Future<List<double>> fetchWeeklyUserGrowth() async {
-    final cutoff = DateTime.now().subtract(const Duration(days: 49));
-    final data = await _client
-      .from('user')
-      .select('created_at');
-
-    final counts = List<int>.filled(7, 0);
-    final now = DateTime.now();
-    for (final row in data) {
-      final dt = DateTime.tryParse((row['created_at'] ?? '') as String? ?? '');
-      if (dt == null) continue;
-      final daysAgo = now.difference(dt).inDays;
-      final weekIndex = (6 - (daysAgo ~/ 7)).clamp(0, 6);
-      counts[weekIndex]++;
+    final appCols = await _ensureTableColumns('expert_application');
+    if (appCols.contains('application_status')) {
+      await _db.from('expert_application').update({'application_status': 'rejected'}).eq('expert_application_id', applicationId);
     }
-
-    final maxVal = counts.reduce((a, b) => a > b ? a : b);
-    if (maxVal == 0) return List.filled(7, 0.05); // flat baseline for empty data
-    return counts.map((c) => (c / maxVal).clamp(0.05, 1.0)).toList();
-  }
-
-  /// Fetches `created_at` timestamps for every post created in the last 7 days
-  /// and returns a 7-element list of values normalised to [0.0, 1.0].
-  ///
-  /// Index 0 = 6 days ago, index 6 = today.
-  Future<List<double>> fetchDailyPostCounts() async {
-    final cutoff = DateTime.now().subtract(const Duration(days: 7));
-    final data = await _client
-        .from('post')
-        .select('create_date')
-        .gte('create_date', cutoff.toIso8601String());
-
-    final counts = List<int>.filled(7, 0);
-    final now = DateTime.now();
-    for (final row in data) {
-      final dt = DateTime.tryParse(row['create_date'] as String? ?? '');
-      if (dt == null) continue;
-      final daysAgo = now.difference(dt).inDays;
-      final dayIndex = (6 - daysAgo).clamp(0, 6);
-      counts[dayIndex]++;
-    }
-
-    final maxVal = counts.reduce((a, b) => a > b ? a : b);
-    if (maxVal == 0) return List.filled(7, 0.05);
-    return counts.map((c) => (c / maxVal).clamp(0.05, 1.0)).toList();
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // REALTIME
-  // ─────────────────────────────────────────────────────────
-
-  /// Returns a [RealtimeChannel] that fires [onChanged] whenever any row
-  /// in the `reports` table is inserted, updated, or deleted.
-  ///
-  /// The caller is responsible for calling `.unsubscribe()` on dispose.
-  RealtimeChannel subscribeToReports(void Function() onChanged) {
-    return _client
-        .channel('admin-reports-changes')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'report',
-          callback: (_) => onChanged(),
-        )
-        .subscribe();
-  }
-
-  /// Returns a [RealtimeChannel] that fires [onChanged] whenever any row
-  /// in the `trainer_applications` table is inserted, updated, or deleted.
-  ///
-  /// The caller is responsible for calling `.unsubscribe()` on dispose.
-  RealtimeChannel subscribeToApplications(void Function() onChanged) {
-    return _client
-        .channel('admin-applications-changes')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'trainer_applications',
-          callback: (_) => onChanged(),
-        )
-        .subscribe();
   }
 }
