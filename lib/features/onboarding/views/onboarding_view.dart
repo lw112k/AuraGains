@@ -1,4 +1,7 @@
+import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
+import 'package:auragains/main.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../view_models/onboarding_view_model.dart';
 import '../models/onboarding_model.dart';
 
@@ -25,12 +28,25 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
 
-  void _nextPage() {
+  void _nextPage() async {
     if (widget.viewModel.currentPage < 2) {
       _pageController.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
     } else {
-      widget.viewModel.submitOnboarding();
+      // 1. Save the onboarding data to Supabase
+      await widget.viewModel.submitOnboarding();
+
+      if (mounted) {
+        // 2. Sign the user out
+        context.read<AuthViewModel>(); 
+
+        // 3. Navigate back to the AUTH WRAPPER, not the LoginView!
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const AuthWrapper()), // <-- Changed this line!
+          (Route<dynamic> route) => false, 
+        );
+      }
     }
   }
 
