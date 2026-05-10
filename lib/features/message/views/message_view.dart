@@ -10,8 +10,8 @@ const Color _accentColor = Color(0xFF00E5FF);
 const Color _textPrimary = Colors.white;
 const Color _textSecondary = Colors.grey;
 
-class MessagesListView extends StatelessWidget {
-  const MessagesListView({super.key});
+class MessageView extends StatelessWidget {
+  const MessageView({super.key});
 
   @override
   Widget build(BuildContext context) {
