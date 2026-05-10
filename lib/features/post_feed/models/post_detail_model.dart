@@ -1,4 +1,5 @@
-// Path: AuraGains/lib/features/post_feed/models/post_model.dart
+import 'package:auragains/features/post_feed/models/post_media_model.dart';
+import 'package:auragains/features/post_feed/models/tag_model.dart';
 
 class PostDetailModel {
   final int postId;
@@ -12,10 +13,10 @@ class PostDetailModel {
 
   final String creatorId;
   final String creatorUsername;
-  final String? creatorProfilePicUrl;
+  final String? creatorProfileUrl;
 
   final List<PostMediaModel> mediaList;
-  final List<TagModel> tags;
+  final List<TagModel> tagList;
 
   final bool isLiked;
   final bool isSaved;
@@ -31,9 +32,9 @@ class PostDetailModel {
     required this.createDate,
     required this.creatorId,
     required this.creatorUsername,
-    required this.creatorProfilePicUrl,
+    required this.creatorProfileUrl,
     required this.mediaList,
-    required this.tags,
+    required this.tagList,
     required this.isLiked,
     required this.isSaved,
   });
@@ -49,15 +50,15 @@ class PostDetailModel {
       likeCount: json['post_like'] ?? 0,
       createDate: DateTime.parse(json['create_date']),
 
-      creatorId: json['user']['user_id'],
-      creatorUsername: json['user']['username'],
-      creatorProfilePicUrl: json['user']['profile_pic_url'],
+      creatorId: json['creator_id'],
+      creatorUsername: json['creator_username'],
+      creatorProfileUrl: json['creator_profile_url'],
 
       mediaList: (json['post_media'] as List<dynamic>? ?? [])
           .map((e) => PostMediaModel.fromJson(e))
           .toList(),
 
-      tags: (json['post_tag'] as List<dynamic>? ?? [])
+      tagList: (json['post_tag'] as List<dynamic>? ?? [])
           .map((e) => TagModel.fromJson(e['tag']))
           .toList(),
 
