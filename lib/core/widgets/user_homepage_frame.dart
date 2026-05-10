@@ -1,4 +1,5 @@
 import 'package:auragains/features/challenges/views/challenge_view.dart';
+import 'package:auragains/features/message/views/message_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
@@ -42,7 +43,7 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     const Center(child: Text('Homepage')), // Index 0: Replace with HomeView()
     const ChallengeView(), // Index 1: Replace with ChallengeView()
     const Center(child: Text('Post')), // Index 2: Replace with PostView()
-    const Center(child: Text('Message')), // Index 3: Replace with MessageView()
+    const MessageView(), // Index 3: Replace with MessageView()
     const Center(child: Text('Expert')), // Index 4: Replace with ExpertView()
   ];
 

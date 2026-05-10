@@ -1,7 +1,5 @@
-import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 import 'package:auragains/main.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../view_models/onboarding_view_model.dart';
 import '../models/onboarding_model.dart';
 
@@ -16,36 +14,47 @@ const Color _textPrimary = Colors.white;
 const Color _textSecondary = Colors.grey;
 const Color _buttonText = Colors.black;
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingView extends StatefulWidget {
   final OnboardingViewModel viewModel;
 
-  const OnboardingScreen({super.key, required this.viewModel});
+  const OnboardingView({super.key, required this.viewModel});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  State<OnboardingView> createState() => _OnboardingViewState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingViewState extends State<OnboardingView> {
   final PageController _pageController = PageController();
 
   void _nextPage() async {
     if (widget.viewModel.currentPage < 2) {
       _pageController.nextPage(
-          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
     } else {
-      // 1. Save the onboarding data to Supabase
-      await widget.viewModel.submitOnboarding();
+      // 1. Make sure submitOnboarding returns a bool
+      final success = await widget.viewModel.submitOnboarding();
 
       if (mounted) {
-        // 2. Sign the user out
-        context.read<AuthViewModel>(); 
-
-        // 3. Navigate back to the AUTH WRAPPER, not the LoginView!
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const AuthWrapper()), // <-- Changed this line!
-          (Route<dynamic> route) => false, 
-        );
+        if (success) {
+          // 2. Only triggers if the DB update worked
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const AuthWrapper()),
+            (Route<dynamic> route) => false,
+          );
+        } else {
+          // 3. Stops them from proceeding with a broken profile
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Failed to save profile. Please check your connection and try again.',
+              ),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
       }
     }
   }
@@ -59,32 +68,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           animation: widget.viewModel, // Listens for state changes
           builder: (context, _) {
             final data = widget.viewModel.data;
-            
+
             return Column(
               children: [
                 const SizedBox(height: 20),
                 // Logo & Progress Indicator
-                const Text("AURAGAINS", style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                const Text(
+                  "AURAGAINS",
+                  style: TextStyle(
+                    color: _textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(3, (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: widget.viewModel.currentPage == index ? 24 : 12,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: widget.viewModel.currentPage >= index ? _accentColor : _fieldColor,
-                      borderRadius: BorderRadius.circular(2),
+                  children: List.generate(
+                    3,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: widget.viewModel.currentPage == index ? 24 : 12,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: widget.viewModel.currentPage >= index
+                            ? _accentColor
+                            : _fieldColor,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  )),
+                  ),
                 ),
                 const SizedBox(height: 40),
-                
-                
+
                 Expanded(
                   child: PageView(
                     controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(), 
+                    physics: const NeverScrollableScrollPhysics(),
                     onPageChanged: widget.viewModel.setPage,
                     children: [
                       _buildGenderStep(data),
@@ -97,47 +118,69 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // Bottom Buttons
                 Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: widget.viewModel.isLoading 
-                    ? const CircularProgressIndicator(color: _accentColor)
-                    : Row(
-                    children: [
-                      if (widget.viewModel.currentPage > 0) ...[
-                        Expanded(
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              side: const BorderSide(color: _fieldColor),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  child: widget.viewModel.isLoading
+                      ? const CircularProgressIndicator(color: _accentColor)
+                      : Row(
+                          children: [
+                            if (widget.viewModel.currentPage > 0) ...[
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    side: const BorderSide(color: _fieldColor),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _pageController.previousPage(
+                                      duration: const Duration(
+                                        milliseconds: 300,
+                                      ),
+                                      curve: Curves.easeInOut,
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Back',
+                                    style: TextStyle(color: _textPrimary),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                            ],
+                            Expanded(
+                              flex: 2,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _accentColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                ),
+                                onPressed: _nextPage,
+                                child: Text(
+                                  widget.viewModel.currentPage == 2
+                                      ? 'Finish'
+                                      : 'Continue',
+                                  style: const TextStyle(
+                                    color: _buttonText,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
-                            onPressed: () {
-                              _pageController.previousPage(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                            },
-                            child: const Text('Back', style: TextStyle(color: _textPrimary)),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                      ],
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _accentColor,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          ),
-                          onPressed: _nextPage,
-                          child: Text(
-                            widget.viewModel.currentPage == 2 ? 'Finish' : 'Continue', 
-                            style: const TextStyle(color: _buttonText, fontSize: 16, fontWeight: FontWeight.bold)
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             );
-          }
+          },
         ),
       ),
     );
@@ -151,9 +194,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text("Tell Us About Yourself", style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text(
+            "Tell Us About Yourself",
+            style: TextStyle(
+              color: _textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text("Select your gender to personalise your experience", style: TextStyle(color: _textSecondary, fontSize: 14)),
+          const Text(
+            "Select your gender to personalise your experience",
+            style: TextStyle(color: _textSecondary, fontSize: 14),
+          ),
           const SizedBox(height: 60),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -161,7 +214,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               _genderCircle("Male", Icons.male, data.gender == "Male"),
               _genderCircle("Female", Icons.female, data.gender == "Female"),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -176,14 +229,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         decoration: BoxDecoration(
           color: _boxColor,
           shape: BoxShape.circle,
-          border: Border.all(color: isSelected ? _accentColor : Colors.transparent, width: 2),
+          border: Border.all(
+            color: isSelected ? _accentColor : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? _accentColor : _textPrimary, size: 40),
+            Icon(
+              icon,
+              color: isSelected ? _accentColor : _textPrimary,
+              size: 40,
+            ),
             const SizedBox(height: 8),
-            Text(title, style: TextStyle(color: isSelected ? _accentColor : _textPrimary, fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? _accentColor : _textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -198,31 +264,72 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Physical Attributes", style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text(
+              "Physical Attributes",
+              style: TextStyle(
+                color: _textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 24),
+
             // Custom Toggle
             Container(
               height: 40,
-              decoration: BoxDecoration(color: _boxColor, borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(
+                color: _boxColor,
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Row(
                 children: [
-                  Expanded(child: _toggleButton("CM / KG", data.unitSystem == 'metric', () => widget.viewModel.toggleUnits('metric'))),
-                  Expanded(child: _toggleButton("FT / LBS", data.unitSystem == 'imperial', () => widget.viewModel.toggleUnits('imperial'))),
+                  Expanded(
+                    child: _toggleButton(
+                      "CM / KG",
+                      data.unitSystem == 'metric',
+                      () => widget.viewModel.toggleUnits('metric'),
+                    ),
+                  ),
+                  Expanded(
+                    child: _toggleButton(
+                      "FT / LBS",
+                      data.unitSystem == 'imperial',
+                      () => widget.viewModel.toggleUnits('imperial'),
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
+
+            // 💡 Pass data.age as the initialValue
             _buildInputField("AGE", "25", "YRS", (val) {
               widget.viewModel.updateMetrics(age: int.tryParse(val));
-            }),
+            }, initialValue: data.age?.toString()),
+
             const SizedBox(height: 16),
-            _buildInputField("WEIGHT", "70", data.unitSystem == 'metric' ? "KG" : "LBS", (val) {
-              widget.viewModel.updateMetrics(weight: double.tryParse(val));
-            }),
+
+            _buildInputField(
+              "WEIGHT",
+              "70",
+              data.unitSystem == 'metric' ? "KG" : "LBS",
+              (val) {
+                widget.viewModel.updateMetrics(weight: double.tryParse(val));
+              },
+              initialValue: data.weight?.toString(),
+            ),
+
             const SizedBox(height: 16),
-            _buildInputField("HEIGHT", "172", data.unitSystem == 'metric' ? "CM" : "FT", (val) {
-              widget.viewModel.updateMetrics(height: double.tryParse(val));
-            }),
+
+            _buildInputField(
+              "HEIGHT",
+              "172",
+              data.unitSystem == 'metric' ? "CM" : "FT",
+              (val) {
+                widget.viewModel.updateMetrics(height: double.tryParse(val));
+              },
+              initialValue: data.height?.toString(),
+            ),
           ],
         ),
       ),
@@ -238,36 +345,74 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           color: isActive ? _accentColor : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(text, style: TextStyle(color: isActive ? _buttonText : _textSecondary, fontWeight: FontWeight.bold, fontSize: 12)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isActive ? _buttonText : _textSecondary,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }
 
-  
-  Widget _buildInputField(String label, String placeholder, String suffix, Function(String) onChanged) {
+  Widget _buildInputField(
+    String label,
+    String placeholder,
+    String suffix,
+    Function(String) onChanged, {
+    String? initialValue,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: _textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: _textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(color: _fieldColor, borderRadius: BorderRadius.circular(12)),
+          decoration: BoxDecoration(
+            color: _fieldColor,
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true), // Better for decimals
-                  style: const TextStyle(color: _textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                //
+                child: TextFormField(
+                  initialValue: initialValue, // 💡 3. Give it the saved data!
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: placeholder,
-                    hintStyle: TextStyle(color: _textSecondary.withOpacity(0.5)),
+                    hintStyle: TextStyle(
+                      color: _textSecondary.withOpacity(0.5),
+                    ),
                   ),
-                  onChanged: onChanged, // Using the passed callback
+                  onChanged: onChanged,
                 ),
               ),
-              Text(suffix, style: const TextStyle(color: _accentColor, fontWeight: FontWeight.bold)),
+              Text(
+                suffix,
+                style: const TextStyle(
+                  color: _accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -282,22 +427,57 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Primary Objective", style: TextStyle(color: _textPrimary, fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text(
+            "Primary Objective",
+            style: TextStyle(
+              color: _textPrimary,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text("What is your main fitness goal?", style: TextStyle(color: _textSecondary, fontSize: 14)),
+          const Text(
+            "What is your main fitness goal?",
+            style: TextStyle(color: _textSecondary, fontSize: 14),
+          ),
           const SizedBox(height: 24),
-          
+
           // match "name" column in 'level' table exactly
-          _objectiveCard("Lose Weight", "Burn calories & shed body fat", "⚖️", data.objective == "Lose Weight"),
-          _objectiveCard("Build Muscle", "Increase muscle mass & size", "💪", data.objective == "Build Muscle"),
-          _objectiveCard("Get Stronger", "Lift heavier & build raw power", "🏋️", data.objective == "Get Stronger"),
-          _objectiveCard("Boost Endurance", "Improve stamina & cardio", "🏃", data.objective == "Boost Endurance"),
+          _objectiveCard(
+            "Lose Weight",
+            "Burn calories & shed body fat",
+            "⚖️",
+            data.objective == "Lose Weight",
+          ),
+          _objectiveCard(
+            "Build Muscle",
+            "Increase muscle mass & size",
+            "💪",
+            data.objective == "Build Muscle",
+          ),
+          _objectiveCard(
+            "Get Stronger",
+            "Lift heavier & build raw power",
+            "🏋️",
+            data.objective == "Get Stronger",
+          ),
+          _objectiveCard(
+            "Boost Endurance",
+            "Improve stamina & cardio",
+            "🏃",
+            data.objective == "Boost Endurance",
+          ),
         ],
       ),
     );
   }
 
-  Widget _objectiveCard(String title, String subtitle, String emoji, bool isSelected) {
+  Widget _objectiveCard(
+    String title,
+    String subtitle,
+    String emoji,
+    bool isSelected,
+  ) {
     return GestureDetector(
       onTap: () => widget.viewModel.updateObjective(title),
       child: Container(
@@ -306,7 +486,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         decoration: BoxDecoration(
           color: _boxColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isSelected ? _accentColor : Colors.transparent, width: 2),
+          border: Border.all(
+            color: isSelected ? _accentColor : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: Row(
           children: [
@@ -315,10 +498,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: _textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(subtitle, style: const TextStyle(color: _textSecondary, fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: _textSecondary, fontSize: 12),
+                ),
               ],
-            )
+            ),
           ],
         ),
       ),
