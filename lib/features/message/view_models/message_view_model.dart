@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../repositories/message_repository.dart';
 import '../models/message_model.dart';
 
-class ChatViewModel extends ChangeNotifier {
+class MessageViewModel extends ChangeNotifier {
   final MessageRepository _repository;
   final String currentUserId;
 
@@ -46,7 +46,7 @@ class ChatViewModel extends ChangeNotifier {
   }
 
 
-  ChatViewModel({required MessageRepository repository, required this.currentUserId})
+  MessageViewModel({required MessageRepository repository, required this.currentUserId})
       : _repository = repository {
     loadConversations();
   }

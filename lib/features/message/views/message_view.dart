@@ -15,7 +15,7 @@ class MessageView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chatVM = context.watch<ChatViewModel>();
+    final chatVM = context.watch<MessageViewModel>();
 
     return Container(
       color: _bgColor,
@@ -110,7 +110,7 @@ class MessageView extends StatelessWidget {
   // HELPER WIDGETS & FUNCTIONS
   // ==========================================
 
-  Widget _buildUserSearchTile(BuildContext context, ChatViewModel viewModel, Map<String, dynamic> user) {
+  Widget _buildUserSearchTile(BuildContext context, MessageViewModel viewModel, Map<String, dynamic> user) {
     final targetUserId = user['user_id'].toString();
     final username = user['username'] ?? 'Unknown';
 
@@ -139,7 +139,7 @@ class MessageView extends StatelessWidget {
     );
   }
 
-  Widget _buildChatTile(BuildContext context, ChatViewModel viewModel, String convoId, String name, String lastMsg, String time, bool hasUnread) {
+  Widget _buildChatTile(BuildContext context, MessageViewModel viewModel, String convoId, String name, String lastMsg, String time, bool hasUnread) {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       onTap: () async {

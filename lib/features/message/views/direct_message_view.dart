@@ -3,7 +3,7 @@ import '../view_models/message_view_model.dart';
 import '../models/message_model.dart';
 
 class DirectMessageView extends StatefulWidget {
-  final ChatViewModel viewModel;
+  final MessageViewModel viewModel;
   final String conversationId;
   final String chatName;
 
