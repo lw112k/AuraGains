@@ -81,7 +81,7 @@ void main() async {
           // ChangeNotifierProvider(create: (_) => PostViewModel()),
           //
           ChangeNotifierProvider(
-            create: (_) => ChatViewModel(
+            create: (_) => MessageViewModel(
               repository: MessageRepository(),
               currentUserId: Supabase.instance.client.auth.currentUser?.id ?? '', 
             ),
