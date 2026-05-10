@@ -145,7 +145,6 @@ class AuthWrapper extends StatelessWidget {
     switch (authViewModel.currentUser!.role) {
       // case 'admin':
       //   return const AdminView();
-      // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
       case 'user':
         return const UserHomepageFrame();
       default:
