@@ -4,7 +4,7 @@ import '../repositories/onboarding_repository.dart';
 
 class OnboardingViewModel extends ChangeNotifier {
   final OnboardingRepository _repository;
-  
+
   // The state we are building up
   OnboardingModel _onboardingData;
   OnboardingModel get data => _onboardingData;
@@ -19,8 +19,8 @@ class OnboardingViewModel extends ChangeNotifier {
   OnboardingViewModel({
     required OnboardingRepository repository,
     required String currentUserId,
-  })  : _repository = repository,
-        _onboardingData = OnboardingModel(userId: currentUserId);
+  }) : _repository = repository,
+       _onboardingData = OnboardingModel(userId: currentUserId);
 
   void setPage(int page) {
     _currentPage = page;
@@ -51,16 +51,15 @@ class OnboardingViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> submitOnboarding() async {
+  Future<bool> submitOnboarding() async {
     _isLoading = true;
     notifyListeners();
-
     try {
       await _repository.completeOnboarding(_onboardingData);
-      // Success! You can now navigate the user to the Main Feed/Dashboard
+      return true; // Success
     } catch (e) {
       print("Error saving onboarding: $e");
-      // Handle error (show snackbar, etc.)
+      return false; // Failed
     } finally {
       _isLoading = false;
       notifyListeners();
