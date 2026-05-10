@@ -1,5 +1,9 @@
+import 'package:auragains/features/onboarding/repositories/onboarding_repository.dart';
+import 'package:auragains/features/onboarding/view_models/onboarding_view_model.dart';
+import 'package:auragains/features/onboarding/views/onboarding_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../view_models/auth_viewmodel.dart';
 
 // =========================================================
@@ -81,9 +85,29 @@ class _RegisterViewState extends State<RegisterView> {
               backgroundColor: _errorColor,
             ),
           );
-        } else {
-          // Success! Go back to login
-          Navigator.pop(context);
+        } else {          
+          // Grab the newly created User ID from Supabase
+          final userId = Supabase.instance.client.auth.currentUser?.id;
+          
+          if (userId != null) {
+            // Initialize the Repository and ViewModel for Onboarding
+            final onboardingRepository = OnboardingRepository();
+            final onboardingViewModel = OnboardingViewModel(
+              repository: onboardingRepository,
+              currentUserId: userId, // Pass the real user ID here!
+            );
+
+            // Push to Onboarding Screen and remove the Register screen from the backstack
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OnboardingScreen(viewModel: onboardingViewModel),
+              ),
+            );
+          } else {
+            // Fallback in case Supabase hasn't updated the current user state yet
+            Navigator.pop(context); 
+          }
         }
       }
     }
