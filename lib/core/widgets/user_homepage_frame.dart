@@ -1,4 +1,5 @@
 import 'package:auragains/features/challenges/views/challenge_view.dart';
+import 'package:auragains/features/post_feed/views/pages/home/home_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
@@ -39,7 +40,7 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
   // REMEMBER Teammates: When your feature is complete, replace the placeholder
   // Text widget below with your actual View class (e.g., HomeView()).
   final List<Widget> _pages = [
-    const Center(child: Text('Homepage')), // Index 0: Replace with HomeView()
+    const HomeView(), // Index 0: Replace with HomeView()
     const ChallengeView(), // Index 1: Replace with ChallengeView()
     const Center(child: Text('Post')), // Index 2: Replace with PostView()
     const Center(child: Text('Message')), // Index 3: Replace with MessageView()
