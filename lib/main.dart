@@ -143,8 +143,8 @@ class AuthWrapper extends StatelessWidget {
     // Interacts with the 'role' string inside the [UserModel].
     // This safely separates the Admin and User features into their own environments.
     switch (authViewModel.currentUser!.role) {
-        case 'admin':
-          return const AdminView();
+      case 'admin':
+        return const AdminView();
       case 'user':
         return const UserHomepageFrame();
       default:
