@@ -86,6 +86,8 @@ class FypFeedViewModel extends ChangeNotifier {
     required String userId,
   }) async {
 
+    _repository.refreshSeed();
+
     hasMore = true;
 
     if (scrollController.hasClients) {
