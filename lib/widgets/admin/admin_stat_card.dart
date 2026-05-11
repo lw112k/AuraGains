@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 
 // ─────────────────────────────────────────────────────────
 // VARIANT
@@ -60,21 +60,21 @@ class AdminStatCard extends StatelessWidget {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   Color get _accentColor => isAlert
-      ? AppColors.warning
+      ? AppTheme.warn
       : switch (variant) {
-          AdminStatVariant.success => AppColors.acid,
-          AdminStatVariant.warning => AppColors.warning,
-          AdminStatVariant.danger  => AppColors.error,
-          _                        => AppColors.acid,
+          AdminStatVariant.success => AppTheme.success,
+          AdminStatVariant.warning => AppTheme.warn,
+          AdminStatVariant.danger  => AppTheme.error,
+          _                        => AppTheme.accent,
         };
 
   Color get _bgColor => isAlert
-      ? AppColors.orangeBg
+      ? AppTheme.warn.withOpacity(0.12)
       : switch (variant) {
-          AdminStatVariant.success => AppColors.acidBg,
-          AdminStatVariant.warning => AppColors.orangeBg,
-          AdminStatVariant.danger  => AppColors.errorBg,
-          _                        => AppColors.acidBgLight,
+          AdminStatVariant.success => AppTheme.success.withOpacity(0.12),
+          AdminStatVariant.warning => AppTheme.warn.withOpacity(0.12),
+          AdminStatVariant.danger  => AppTheme.error.withOpacity(0.12),
+          _                        => AppTheme.accent.withOpacity(0.08),
         };
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -84,9 +84,9 @@ class AdminStatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.card,
+        color: AppTheme.card,
         borderRadius: AppRadius.cardBorder,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppTheme.border),
         boxShadow: AppShadows.cardShadow,
       ),
       child: Column(
@@ -100,7 +100,7 @@ class AdminStatCard extends StatelessWidget {
               color: _bgColor,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: Icon(icon, color: _accentColor, size: AppIconSizes.md),
+                child: Icon(icon, color: _accentColor, size: AppIconSizes.md),
           ),
 
           // Value + label
@@ -109,10 +109,10 @@ class AdminStatCard extends StatelessWidget {
             children: [
               Text(value, style: AppTextStyles.statMedium),
               const SizedBox(height: AppSpacing.xxs),
-              Text(
+                Text(
                 title,
                 style: AppTextStyles.monoLabel
-                    .copyWith(color: AppColors.muted),
+                    .copyWith(color: AppTheme.muted),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),

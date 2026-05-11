@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 import '../../../core/services/database_connection.dart';
 
 class ContentDetailScreen extends StatefulWidget {

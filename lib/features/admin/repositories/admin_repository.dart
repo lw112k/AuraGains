@@ -240,6 +240,43 @@ class AdminRepository {
     }
   }
 
+  // Compatibility wrappers used by higher-level providers.
+  Future<int> fetchUserCount() async {
+    final cols = await _ensureTableColumns('user');
+    final result = await _db.from('user').select('user_id');
+    return result is List ? result.length : 0;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchPendingReports() async {
+    await _ensureReportColumns();
+    dynamic query = _db.from('report').select(_reportColumns != null && _reportColumns!.isNotEmpty ? _reportColumns!.join(',') : '*');
+    if (_reportStatusColumn != null) query = query.eq(_reportStatusColumn!, 'pending');
+    final data = await query.order('create_date', ascending: false);
+    return (data as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>?> fetchUserById(String userId) async {
+    final data = await _db.from('user').select().eq('user_id', userId).maybeSingle();
+    if (data == null) return null;
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> approveReport(String reportId) async {
+    await _ensureReportColumns();
+    if (_reportStatusColumn != null) {
+      final idField = _reportColumns!.contains('report_id') ? 'report_id' : (_reportColumns!.contains('id') ? 'id' : 'report_id');
+      await _db.from('report').update({_reportStatusColumn!: 'approved'}).eq(idField, reportId);
+    }
+  }
+
+  Future<void> rejectReport(String reportId) async {
+    await _ensureReportColumns();
+    if (_reportStatusColumn != null) {
+      final idField = _reportColumns!.contains('report_id') ? 'report_id' : (_reportColumns!.contains('id') ? 'id' : 'report_id');
+      await _db.from('report').update({_reportStatusColumn!: 'rejected'}).eq(idField, reportId);
+    }
+  }
+
   // ─── Posts / Content ─────────────────────────────────────────────────
 
   Future<AdminPostModel?> fetchPost(int postId) async {
@@ -365,5 +402,33 @@ class AdminRepository {
     if (appCols.contains('application_status')) {
       await _db.from('expert_application').update({'application_status': 'rejected'}).eq('expert_application_id', applicationId);
     }
+  }
+
+  Future<Map<String, dynamic>?> fetchApplicationById(String applicationId) async {
+    final cols = await _ensureTableColumns('expert_application');
+    final wanted = [
+      'expert_application_id',
+      'user_id',
+      'expert_title',
+      'experience_year',
+      'experience_years',
+      'experience_description',
+      'application_status',
+      'create_date',
+      'full_name',
+      'email',
+      'gender',
+      'years_experience',
+      'specialization',
+      'bio',
+      'cert_urls'
+    ];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('expert_application_id');
+
+    final idField = cols.contains('expert_application_id') ? 'expert_application_id' : (cols.contains('id') ? 'id' : 'expert_application_id');
+    final data = await _db.from('expert_application').select(fields.join(',')).eq(idField, applicationId).maybeSingle();
+    if (data == null) return null;
+    return data as Map<String, dynamic>;
   }
 }

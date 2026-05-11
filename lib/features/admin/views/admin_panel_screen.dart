@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 import '../../../providers/admin_provider.dart';
 import '../../../widgets/admin/admin_stat_card.dart';
 import '../../../widgets/admin/report_card.dart';
+import 'admin_dashboard_view.dart';
+import '../view_models/admin_viewmodel.dart';
 
 class AdminPanelScreen extends StatelessWidget {
   const AdminPanelScreen({super.key});
@@ -13,39 +15,33 @@ class AdminPanelScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<AdminProvider>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        title: const Text(
-          'Admin Panel',
-          style: AppTextStyles.headlineLarge,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.accent),
-            onPressed: () => context.read<AdminProvider>().loadData(),
+    return ChangeNotifierProvider<AdminViewModel>(
+      create: (_) => AdminViewModel()..loadDashboard(),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          title: const Text(
+            'Admin Panel',
+            style: AppTextStyles.headlineLarge,
           ),
-        ],
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh, color: AppColors.accent),
+              onPressed: () {
+                // Refresh both provider-backed data and the dashboard viewmodel
+                context.read<AdminProvider>().loadData();
+                try {
+                  context.read<AdminViewModel>().loadDashboard();
+                } catch (_) {
+                  // ignore if AdminViewModel isn't available
+                }
+              },
+            ),
+          ],
+        ),
+        body: const AdminDashboardView(),
       ),
-      body: provider.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
-          : provider.error != null
-              ? _buildError(context, provider.error!)
-              : RefreshIndicator(
-                  color: AppColors.accent,
-                  onRefresh: () => context.read<AdminProvider>().loadData(),
-                  child: ListView(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    children: [
-                      _buildWelcome(provider),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildStatsRow(provider),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildReportsSection(context, provider),
-                    ],
-                  ),
-                ),
     );
   }
 

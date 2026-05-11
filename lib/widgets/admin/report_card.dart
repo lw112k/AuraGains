@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 import '../../features/admin/models/report_model.dart';
 
 /// A card that surfaces a single pending moderation report.
@@ -54,9 +54,9 @@ class ReportCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.card,
+          color: AppTheme.card,
           borderRadius: AppRadius.cardBorder,
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppTheme.border),
           boxShadow: AppShadows.cardShadow,
         ),
         child: Column(
@@ -68,7 +68,7 @@ class ReportCard extends StatelessWidget {
                 // Avatar
                 CircleAvatar(
                   radius: 16,
-                  backgroundColor: AppColors.acidBg,
+                  backgroundColor: AppTheme.accent.withOpacity(0.12),
                   backgroundImage: report.reporterAvatar.isNotEmpty
                       ? CachedNetworkImageProvider(report.reporterAvatar)
                       : null,
@@ -111,12 +111,12 @@ class ReportCard extends StatelessWidget {
                     vertical: AppSpacing.xxs,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.orangeBg,
+                    color: AppTheme.warn.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Text(
                     'FLAGGED',
-                    style: AppTextStyles.caption.copyWith(color: AppColors.warning),
+                    style: AppTextStyles.caption.copyWith(color: AppTheme.warn),
                   ),
                 ),
               ],
@@ -135,7 +135,7 @@ class ReportCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
 
             // ── Divider ──────────────────────────────────────────────
-            const Divider(color: AppColors.border, height: 1),
+            Divider(color: AppTheme.border, height: 1),
 
             const SizedBox(height: AppSpacing.sm),
 
@@ -144,11 +144,11 @@ class ReportCard extends StatelessWidget {
               children: [
                 // View content
                 Expanded(
-                  child: OutlinedButton(
+                    child: OutlinedButton(
                     onPressed: onTap,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
+                      style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: AppTheme.border),
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),
                     ),
@@ -161,9 +161,9 @@ class ReportCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onApprove,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.acidBg,
-                      foregroundColor: AppColors.acid,
+                      style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.accent.withOpacity(0.15),
+                      foregroundColor: AppTheme.accent,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),
@@ -177,9 +177,9 @@ class ReportCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onReject,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.errorBg,
-                      foregroundColor: AppColors.error,
+                      style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.error.withOpacity(0.15),
+                      foregroundColor: AppTheme.error,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
                           vertical: AppSpacing.sm),

@@ -2,13 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/admin_model.dart';
 import '../view_models/admin_viewmodel.dart';
-
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 class AdminUsersView extends StatefulWidget {
   const AdminUsersView({super.key});
@@ -39,7 +33,7 @@ class _AdminUsersViewState extends State<AdminUsersView> {
     return Consumer<AdminViewModel>(
       builder: (context, vm, _) {
         if (vm.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: _kAccent));
+          return Center(child: CircularProgressIndicator(color: AppTheme.accent));
         }
         return Column(
           children: [
@@ -55,22 +49,22 @@ class _AdminUsersViewState extends State<AdminUsersView> {
                       style: const TextStyle(color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: 'Search users…',
-                        hintStyle: const TextStyle(color: _kMuted),
-                        prefixIcon: const Icon(Icons.search, color: _kMuted, size: 18),
+                        hintStyle: TextStyle(color: AppTheme.muted),
+                        prefixIcon: Icon(Icons.search, color: AppTheme.muted, size: 18),
                         filled: true,
-                        fillColor: _kCard,
+                        fillColor: AppTheme.card,
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: _kBorder),
+                          borderSide: BorderSide(color: AppTheme.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: _kBorder),
+                          borderSide: BorderSide(color: AppTheme.border),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: _kAccent),
+                          borderSide: BorderSide(color: AppTheme.accent),
                         ),
                       ),
                     ),
@@ -87,21 +81,21 @@ class _AdminUsersViewState extends State<AdminUsersView> {
             // ─ List ─────────────────────────────────────
             Expanded(
               child: RefreshIndicator(
-                color: _kAccent,
-                backgroundColor: _kCard,
+                color: AppTheme.accent,
+                backgroundColor: AppTheme.card,
                 onRefresh: vm.loadUsers,
                 child: vm.filteredUsers.isEmpty
-                    ? const Center(
+                    ? Center(
                         child: Text(
-                          'No users found.',
-                          style: TextStyle(color: _kMuted),
-                        ),
+                                  'No users found.',
+                                  style: TextStyle(color: AppTheme.muted),
+                                ),
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         itemCount: vm.filteredUsers.length,
                         separatorBuilder: (_, __) =>
-                            const Divider(color: _kBorder, height: 1),
+                          Divider(color: AppTheme.border, height: 1),
                         itemBuilder: (ctx, i) {
                           final user = vm.filteredUsers[i];
                           return _UserTile(
@@ -134,7 +128,7 @@ class _AdminUsersViewState extends State<AdminUsersView> {
           content: Text(ok
               ? (user.isBanned ? 'User unbanned.' : 'User banned.')
               : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
     }
@@ -147,7 +141,7 @@ class _AdminUsersViewState extends State<AdminUsersView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Role updated to $role.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
     }
@@ -171,9 +165,9 @@ class _UserTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final roleColor = switch (user.systemRole) {
-      'admin' => _kWarn,
-      'expert' => _kAccent,
-      _ => _kMuted,
+      'admin' => AppTheme.warn,
+      'expert' => AppTheme.accent,
+      _ => AppTheme.muted,
     };
 
     return Padding(
@@ -207,7 +201,7 @@ class _UserTile extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                         decoration: BoxDecoration(
-                          color: Colors.redAccent.withValues(alpha: 0.15),
+                          color: Colors.redAccent.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(100),
                         ),
                         child: const Text(
@@ -224,16 +218,16 @@ class _UserTile extends StatelessWidget {
                 ),
                 Text(
                   user.email,
-                  style: const TextStyle(color: _kMuted, fontSize: 12),
+                  style: TextStyle(color: AppTheme.muted, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                   decoration: BoxDecoration(
-                    color: roleColor.withValues(alpha: 0.12),
+                    color: roleColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: roleColor.withValues(alpha: 0.3)),
+                    border: Border.all(color: roleColor.withOpacity(0.3)),
                   ),
                   child: Text(
                     (user.systemRole).toUpperCase(),
@@ -253,12 +247,12 @@ class _UserTile extends StatelessWidget {
             const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: _kAccent),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent),
             )
           else
-            PopupMenuButton<String>(
-              color: _kCard,
-              icon: const Icon(Icons.more_vert_rounded, color: _kMuted),
+              PopupMenuButton<String>(
+              color: AppTheme.card,
+              icon: Icon(Icons.more_vert_rounded, color: AppTheme.muted),
               onSelected: (val) {
                 if (val == 'ban_toggle') {
                   onBanToggle();
@@ -272,7 +266,7 @@ class _UserTile extends StatelessWidget {
                   child: Text(
                     user.isBanned ? 'Unban User' : 'Ban User',
                     style: TextStyle(
-                      color: user.isBanned ? _kSuccess : Colors.redAccent,
+                      color: user.isBanned ? AppTheme.success : Colors.redAccent,
                     ),
                   ),
                 ),
@@ -294,7 +288,7 @@ class _UserTile extends StatelessWidget {
       enabled: !isCurrent,
       child: Text(
         label,
-        style: TextStyle(color: isCurrent ? _kMuted : Colors.white),
+        style: TextStyle(color: isCurrent ? AppTheme.muted : Colors.white),
       ),
     );
   }
@@ -310,26 +304,26 @@ class _RoleFilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String?>(
-      color: _kCard,
+      color: AppTheme.card,
       onSelected: onChanged,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
         decoration: BoxDecoration(
-          color: _kCard,
+          color: AppTheme.card,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-              color: current != null ? _kAccent : _kBorder),
+              color: current != null ? AppTheme.accent : AppTheme.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.filter_list_rounded,
-                size: 16, color: current != null ? _kAccent : _kMuted),
+                size: 16, color: current != null ? AppTheme.accent : AppTheme.muted),
             const SizedBox(width: 4),
             Text(
               current?.toUpperCase() ?? 'ALL',
               style: TextStyle(
-                  color: current != null ? _kAccent : _kMuted,
+                  color: current != null ? AppTheme.accent : AppTheme.muted,
                   fontSize: 12,
                   fontWeight: FontWeight.w600),
             ),
@@ -358,18 +352,18 @@ class _SmallAvatar extends StatelessWidget {
     if (url != null && url!.isNotEmpty) {
       return CircleAvatar(
         radius: 20,
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
         onBackgroundImageError: (_, __) {},
       );
     }
     return CircleAvatar(
       radius: 20,
-      backgroundColor: _kAccent.withValues(alpha: 0.15),
+      backgroundColor: AppTheme.accent.withOpacity(0.15),
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: const TextStyle(
-            color: _kAccent, fontWeight: FontWeight.w700, fontSize: 14),
+        style: TextStyle(
+            color: AppTheme.accent, fontWeight: FontWeight.w700, fontSize: 14),
       ),
     );
   }

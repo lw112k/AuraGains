@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
+import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 import '../../../providers/admin_provider.dart';
 import 'admin_content_screen.dart';
+import 'admin_panel_screen.dart';
 import 'admin_view.dart';
 import 'applications_screen.dart';
 import 'user_management_screen.dart';
@@ -27,7 +29,7 @@ class AdminShell extends StatefulWidget {
 class _AdminShellState extends State<AdminShell> {
   int _currentIndex = 1; // Start on the Dashboard tab
 
-  final List<Widget> _pages = const [
+  final List<Widget> _pages = [
     AdminContentScreen(),
     AdminPanelScreen(),
     UserManagementScreen(),
@@ -38,10 +40,56 @@ class _AdminShellState extends State<AdminShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      // No top-level AppBar — each child screen owns its own AppBar.
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _pages,
+      // Overlay stack so we can show a persistent logout button above
+      // each child screen without changing per-screen AppBars.
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: _currentIndex,
+            children: _pages,
+          ),
+
+          // Top-right persistent logout button (prominent, accessible).
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4.0),
+                child: Material(
+                  color: AppColors.accent,
+                  shape: const CircleBorder(),
+                  elevation: 4,
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () async {
+                      try {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Logging out...')),
+                        );
+                        await context.read<AuthViewModel>().logout();
+                      } catch (e) {
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Logout failed: $e')),
+                        );
+                      }
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: Icon(
+                        Icons.logout,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _AdminNavBar(
         currentIndex: _currentIndex,
@@ -50,6 +98,8 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 }
+
+// Using built-in Icon for logout; no inline SVG required.
 
 class _AdminNavBar extends StatelessWidget {
   const _AdminNavBar({

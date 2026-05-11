@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/constants.dart';
+import 'package:auragains/core/theme/app_theme.dart';
 
 /// A simple branded circular loading indicator.
 ///
@@ -21,9 +21,9 @@ class LoadingSpinner extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size,
-      child: const CircularProgressIndicator(
+      child: CircularProgressIndicator(
         strokeWidth: 2,
-        valueColor: AlwaysStoppedAnimation<Color>(AppColors.acid),
+        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.accent),
       ),
     );
   }

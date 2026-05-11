@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/constants.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 import '../models/trainer_application_model.dart';
 import '../repositories/admin_repository.dart';
 

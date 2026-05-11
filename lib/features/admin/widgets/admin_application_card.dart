@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/admin_model.dart';
-
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 class AdminApplicationCard extends StatelessWidget {
   const AdminApplicationCard({
@@ -27,18 +21,18 @@ class AdminApplicationCard extends StatelessWidget {
     final status = application.applicationStatus ?? 'pending';
     final isPending = status == 'pending';
     final statusColor = switch (status) {
-      'approved' => _kSuccess,
-      'rejected' => _kMuted,
-      _ => _kWarn,
+      'approved' => AppTheme.success,
+      'rejected' => AppTheme.muted,
+      _ => AppTheme.warn,
     };
     final borderColor =
-        isPending ? _kWarn.withValues(alpha: 0.35) : _kBorder;
+      isPending ? AppTheme.warn.withOpacity(0.35) : AppTheme.border;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: _kCard,
+          color: AppTheme.card,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: borderColor),
         ),
@@ -58,15 +52,15 @@ class AdminApplicationCard extends StatelessWidget {
                       Text(
                         application.username ?? '(unknown)',
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                        ),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
                       ),
                       if (application.email != null)
                         Text(
                           application.email!,
-                          style: const TextStyle(color: _kMuted, fontSize: 12),
+                          style: TextStyle(color: AppTheme.muted, fontSize: 12),
                         ),
                     ],
                   ),
@@ -78,10 +72,10 @@ class AdminApplicationCard extends StatelessWidget {
 
             // ─ Expert title ────────────────────────────────
             if (application.expertTitle != null) ...[
-              Text(
+                Text(
                 application.expertTitle!,
-                style: const TextStyle(
-                  color: _kAccent,
+                style: TextStyle(
+                  color: AppTheme.accent,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -93,7 +87,7 @@ class AdminApplicationCard extends StatelessWidget {
             if (application.experienceYears != null)
               Text(
                 '${application.experienceYears} yr${application.experienceYears! == 1 ? '' : 's'} experience',
-                style: const TextStyle(color: _kMuted, fontSize: 12),
+                style: TextStyle(color: AppTheme.muted, fontSize: 12),
               ),
 
             if (application.experienceDescription != null) ...[
@@ -112,8 +106,8 @@ class AdminApplicationCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 'Applied ${_shortDate(application.createDate!)}',
-                style: const TextStyle(
-                  color: _kMuted,
+                style: TextStyle(
+                  color: AppTheme.muted,
                   fontSize: 11,
                   fontFamily: 'monospace',
                 ),
@@ -142,8 +136,8 @@ class AdminApplicationCard extends StatelessWidget {
                     child: FilledButton(
                       onPressed: onApprove,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _kSuccess.withValues(alpha: 0.15),
-                        foregroundColor: _kSuccess,
+                                  backgroundColor: AppTheme.success.withOpacity(0.15),
+                                  foregroundColor: AppTheme.success,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         textStyle: const TextStyle(fontSize: 12),
                       ),
@@ -171,9 +165,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        border: Border.all(color: color.withOpacity(0.35)),
       ),
       child: Text(
         status.toUpperCase(),
@@ -199,17 +193,17 @@ class _Avatar extends StatelessWidget {
     if (url != null && url!.isNotEmpty) {
       return CircleAvatar(
         radius: 22,
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
         onBackgroundImageError: (_, __) {},
       );
     }
     return CircleAvatar(
       radius: 22,
-      backgroundColor: const Color(0xFF00E5FF).withValues(alpha: 0.15),
+      backgroundColor: AppTheme.accent.withOpacity(0.15),
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.w700),
+        style: TextStyle(color: AppTheme.accent, fontWeight: FontWeight.w700),
       ),
     );
   }

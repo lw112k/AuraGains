@@ -15,6 +15,9 @@ dependencies:
   image_picker: ^1.0.7
   video_player: ^2.8.1
   path: ^1.9.1
+  cached_network_image: any
+  intl: any
+  go_router: ^7.0.0
 
 dev_dependencies:
   flutter_test:

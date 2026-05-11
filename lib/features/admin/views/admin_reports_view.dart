@@ -3,12 +3,7 @@ import 'package:provider/provider.dart';
 import '../view_models/admin_viewmodel.dart';
 import '../widgets/admin_report_card.dart';
 import 'admin_content_detail_view.dart';
-
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kMuted = Color(0xFF9E9E9E);
-const Color _kSuccess = Color(0xFF00E676);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 class AdminReportsView extends StatefulWidget {
   const AdminReportsView({super.key});
@@ -31,7 +26,7 @@ class _AdminReportsViewState extends State<AdminReportsView> {
     return Consumer<AdminViewModel>(
       builder: (context, vm, _) {
         if (vm.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: _kAccent));
+          return Center(child: CircularProgressIndicator(color: AppTheme.accent));
         }
 
         return Column(
@@ -45,17 +40,17 @@ class _AdminReportsViewState extends State<AdminReportsView> {
             // ─ List ─────────────────────────────────────
             Expanded(
               child: RefreshIndicator(
-                color: _kAccent,
-                backgroundColor: _kCard,
+                color: AppTheme.accent,
+                backgroundColor: AppTheme.card,
                 onRefresh: vm.loadReports,
                 child: vm.filteredReports.isEmpty
                     ? ListView(
-                        children: const [
-                          SizedBox(height: 80),
+                        children: [
+                          const SizedBox(height: 80),
                           Center(
                             child: Text(
                               'No reports found.',
-                              style: TextStyle(color: _kMuted),
+                              style: TextStyle(color: AppTheme.muted),
                             ),
                           ),
                         ],
@@ -92,7 +87,7 @@ class _AdminReportsViewState extends State<AdminReportsView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report approved.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kSuccess : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.success : Colors.redAccent,
         ),
       );
     }
@@ -105,7 +100,7 @@ class _AdminReportsViewState extends State<AdminReportsView> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report dismissed.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
     }
@@ -152,15 +147,15 @@ class _StatusTabBar extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: active ? _kAccent.withValues(alpha: 0.15) : _kCard,
+                  color: active ? AppTheme.accent.withOpacity(0.15) : AppTheme.card,
                   borderRadius: BorderRadius.circular(100),
                   border: Border.all(
-                      color: active ? _kAccent : _kBorder),
+                      color: active ? AppTheme.accent : AppTheme.border),
                 ),
                 child: Text(
                   t.label,
                   style: TextStyle(
-                    color: active ? _kAccent : _kMuted,
+                    color: active ? AppTheme.accent : AppTheme.muted,
                     fontSize: 12,
                     fontWeight:
                         active ? FontWeight.w700 : FontWeight.w500,
