@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:auragains/features/admin/admin_palette.dart';
 import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
-import '../../../providers/admin_provider.dart';
+import 'package:auragains/features/admin/providers/admin_provider.dart';
 import 'admin_content_screen.dart';
 import 'admin_panel_screen.dart';
 import 'admin_view.dart';

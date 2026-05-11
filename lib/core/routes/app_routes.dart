@@ -8,7 +8,7 @@ import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/homepage/views/home_view.dart';
 import '../../core/widgets/splash_screen.dart';
-import '../../providers/admin_provider.dart';
+import 'package:auragains/features/admin/providers/admin_provider.dart';
 
 // ─────────────────────────────────────────────────────────
 // ROUTE PATH CONSTANTS

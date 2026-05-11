@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:auragains/features/admin/admin_palette.dart';
-import '../../../providers/admin_provider.dart';
-import '../../../widgets/admin/admin_stat_card.dart';
-import '../../../widgets/admin/report_card.dart';
+import 'package:auragains/features/admin/providers/admin_provider.dart';
+import 'package:auragains/features/admin/widgets/admin_stat_card.dart';
+import 'package:auragains/features/admin/widgets/report_card.dart';
 import 'admin_dashboard_view.dart';
 import '../view_models/admin_viewmodel.dart';
 
@@ -64,20 +64,20 @@ class AdminPanelScreen extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: AdminStatCard(
-            title: 'Total Users',
-            value: provider.userCount.toString(),
-            icon: Icons.people,
-          ),
+            child: AdminStatCard(
+              label: 'Total Users',
+              value: provider.userCount.toString(),
+              icon: Icons.people,
+            ),
         ),
         const SizedBox(width: AppSpacing.lg),
         Expanded(
-          child: AdminStatCard(
-            title: 'Pending Reports',
-            value: provider.reports.length.toString(),
-            icon: Icons.flag,
-            isAlert: provider.reports.isNotEmpty,
-          ),
+            child: AdminStatCard(
+              label: 'Pending Reports',
+              value: provider.reports.length.toString(),
+              icon: Icons.flag,
+              variant: provider.reports.isNotEmpty ? AdminStatVariant.warning : AdminStatVariant.normal,
+            ),
         ),
       ],
     );

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:auragains/features/admin/admin_palette.dart';
-import '../../features/admin/models/report_model.dart';
+import 'package:auragains/features/admin/models/report_model.dart';
 
 /// A card that surfaces a single pending moderation report.
 ///
@@ -11,14 +11,6 @@ import '../../features/admin/models/report_model.dart';
 /// relative timestamp.  Two action buttons — Approve and Reject — forward
 /// to the provided callbacks.
 ///
-/// ```dart
-/// ReportCard(
-///   report: report,
-///   onTap:     () => context.push(AppRoutes.adminContentDetail(report.contentId)),
-///   onApprove: () => _handleApprove(report),
-///   onReject:  () => _handleReject(report),
-/// )
-/// ```
 class ReportCard extends StatelessWidget {
   const ReportCard({
     super.key,
@@ -33,8 +25,6 @@ class ReportCard extends StatelessWidget {
   final VoidCallback onApprove;
   final VoidCallback onReject;
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
   String _formatDate(DateTime dt) {
     final now = DateTime.now();
     final diff = now.difference(dt);
@@ -44,8 +34,6 @@ class ReportCard extends StatelessWidget {
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return DateFormat('MMM d').format(dt);
   }
-
-  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +50,8 @@ class ReportCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Reporter row ──────────────────────────────────────────
             Row(
               children: [
-                // Avatar
                 CircleAvatar(
                   radius: 16,
                   backgroundColor: AppTheme.accent.withOpacity(0.12),
@@ -83,7 +69,6 @@ class ReportCard extends StatelessWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
 
-                // Username + timestamp
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,7 +89,6 @@ class ReportCard extends StatelessWidget {
                   ),
                 ),
 
-                // Flagged badge
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.sm,
@@ -124,7 +108,6 @@ class ReportCard extends StatelessWidget {
 
             const SizedBox(height: AppSpacing.sm),
 
-            // ── Reason ───────────────────────────────────────────────
             Text(
               report.reason.isNotEmpty ? report.reason : 'No reason provided.',
               style: AppTextStyles.bodySmall,
@@ -134,55 +117,47 @@ class ReportCard extends StatelessWidget {
 
             const SizedBox(height: AppSpacing.md),
 
-            // ── Divider ──────────────────────────────────────────────
             Divider(color: AppTheme.border, height: 1),
 
             const SizedBox(height: AppSpacing.sm),
 
-            // ── Action buttons ────────────────────────────────────────
             Row(
               children: [
-                // View content
                 Expanded(
-                    child: OutlinedButton(
+                  child: OutlinedButton(
                     onPressed: onTap,
-                      style: OutlinedButton.styleFrom(
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: BorderSide(color: AppTheme.border),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.sm),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     ),
                     child: const Text('VIEW', style: AppTextStyles.labelMedium),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
 
-                // Approve (report upheld)
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onApprove,
-                      style: ElevatedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.accent.withOpacity(0.15),
                       foregroundColor: AppTheme.accent,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.sm),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     ),
                     child: const Text('APPROVE', style: AppTextStyles.labelMedium),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
 
-                // Reject (dismiss report)
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onReject,
-                      style: ElevatedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.error.withOpacity(0.15),
                       foregroundColor: AppTheme.error,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.sm),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     ),
                     child: const Text('REJECT', style: AppTextStyles.labelMedium),
                   ),
