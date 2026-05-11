@@ -5,12 +5,8 @@ import 'admin_dashboard_view.dart';
 import 'admin_users_view.dart';
 import 'admin_reports_view.dart';
 import 'admin_applications_view.dart';
-
-const Color _kBg = Color(0xFF121212);
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
+import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 
 class AdminView extends StatelessWidget {
   const AdminView({super.key});
@@ -53,14 +49,14 @@ class _AdminShellState extends State<_AdminShell> {
     final vm = context.watch<AdminViewModel>();
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: AppTheme.backgroundDark,
       appBar: AppBar(
-        backgroundColor: _kCard,
+        backgroundColor: AppTheme.card,
         foregroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         title: Row(
           children: [
-            const Icon(Icons.shield_rounded, color: _kAccent, size: 20),
+            Icon(Icons.shield_rounded, color: AppTheme.accent, size: 20),
             const SizedBox(width: 8),
             Text(
               _tabs[_currentIndex].label,
@@ -80,10 +76,31 @@ class _AdminShellState extends State<_AdminShell> {
                 height: 18,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: _kAccent,
+                  color: AppTheme.accent,
                 ),
               ),
             ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              tooltip: 'Logout',
+              onPressed: () async {
+                try {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Logging out...')),
+                  );
+                  await context.read<AuthViewModel>().logout();
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Logout failed: $e')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.logout, color: Colors.white),
+            ),
+          ),
         ],
       ),
       body: IndexedStack(
@@ -116,9 +133,9 @@ class _AdminNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: _kCard,
-        border: Border(top: BorderSide(color: _kBorder)),
+      decoration: BoxDecoration(
+        color: AppTheme.card,
+        border: Border(top: BorderSide(color: AppTheme.border)),
       ),
       child: SafeArea(
         top: false,
@@ -178,7 +195,7 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? _kAccent : _kMuted;
+    final color = active ? AppTheme.accent : AppTheme.muted;
 
     return GestureDetector(
       onTap: onTap,
@@ -196,20 +213,20 @@ class _NavItem extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   decoration: BoxDecoration(
                     color: active
-                        ? _kAccent.withValues(alpha: 0.12)
-                        : Colors.transparent,
+                      ? AppTheme.accent.withOpacity(0.12)
+                      : Colors.transparent,
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Icon(icon, color: color, size: 22),
                 ),
-                if (badge > 0)
+                    if (badge > 0)
                   Positioned(
                     top: -4,
                     right: -4,
                     child: Container(
                       padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFF6B35),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warn,
                         shape: BoxShape.circle,
                       ),
                       constraints:

@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/admin_viewmodel.dart';
-
-const Color _kBg = Color(0xFF121212);
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 class AdminContentDetailView extends StatefulWidget {
   const AdminContentDetailView({
@@ -39,9 +32,9 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: AppTheme.backgroundDark,
       appBar: AppBar(
-        backgroundColor: _kCard,
+        backgroundColor: AppTheme.card,
         foregroundColor: Colors.white,
         title: const Text(
           'Content Detail',
@@ -51,13 +44,13 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
       ),
       body: Consumer<AdminViewModel>(
         builder: (context, vm, _) {
-          if (vm.isLoading) {
-            return const Center(
-                child: CircularProgressIndicator(color: _kAccent));
+            if (vm.isLoading) {
+            return Center(
+                child: CircularProgressIndicator(color: AppTheme.accent));
           }
           if (vm.detailPost == null) {
-            return const Center(
-              child: Text('Post not found.', style: TextStyle(color: _kMuted)),
+            return Center(
+              child: Text('Post not found.', style: TextStyle(color: AppTheme.muted)),
             );
           }
 
@@ -76,11 +69,11 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: _kWarn.withValues(alpha: 0.08),
+                    color: AppTheme.warn.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                     border:
-                        Border.all(color: _kWarn.withValues(alpha: 0.3)),
-                  ),
+                      Border.all(color: AppTheme.warn.withOpacity(0.3)),
+                    ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -93,7 +86,7 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                       Text(
                         'Reported ${_fmtDate(report.createDate)}',
                         style:
-                            const TextStyle(color: _kMuted, fontSize: 11),
+                          TextStyle(color: AppTheme.muted, fontSize: 11),
                       ),
                     ],
                   ),
@@ -107,9 +100,9 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: _kCard,
+                  color: AppTheme.card,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _kBorder),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,8 +127,8 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                               ),
                               Text(
                                 author.email,
-                                style: const TextStyle(
-                                    color: _kMuted, fontSize: 12),
+                                style: TextStyle(
+                                  color: AppTheme.muted, fontSize: 12),
                               ),
                             ],
                           ),
@@ -163,11 +156,11 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                     Row(
                       children: [
                         _TagChip(
-                            label: post.postType ?? 'post',
-                            color: _kAccent),
+                          label: post.postType ?? 'post',
+                          color: AppTheme.accent),
                         const SizedBox(width: 6),
                         _TagChip(
-                            label: '♥ ${post.postLike}', color: _kMuted),
+                          label: '♥ ${post.postLike}', color: AppTheme.muted),
                       ],
                     ),
                     if (post.createDate != null) ...[
@@ -175,7 +168,7 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                       Text(
                         _fmtDate(post.createDate),
                         style: const TextStyle(
-                            color: _kMuted, fontSize: 11),
+                          color: AppTheme.muted, fontSize: 11),
                       ),
                     ],
                   ],
@@ -201,12 +194,12 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                         height: 200,
                         width: 200,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, __, ___) => Container(
                           height: 200,
                           width: 200,
-                          color: _kCard,
-                          child: const Icon(Icons.broken_image_rounded,
-                              color: _kMuted),
+                            color: AppTheme.card,
+                          child: Icon(Icons.broken_image_rounded,
+                              color: AppTheme.muted),
                         ),
                       ),
                     ),
@@ -251,8 +244,8 @@ class _ActionButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.read<AdminViewModel>();
     if (isActionLoading) {
-      return const Center(
-          child: CircularProgressIndicator(color: _kAccent));
+      return Center(
+          child: CircularProgressIndicator(color: AppTheme.accent));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -261,9 +254,9 @@ class _ActionButtons extends StatelessWidget {
           onPressed: () => _onApproveReport(context, vm),
           icon: const Icon(Icons.check_circle_rounded),
           label: const Text('Approve Report'),
-          style: FilledButton.styleFrom(
-            backgroundColor: _kSuccess.withValues(alpha: 0.15),
-            foregroundColor: _kSuccess,
+            style: FilledButton.styleFrom(
+            backgroundColor: AppTheme.success.withOpacity(0.15),
+            foregroundColor: AppTheme.success,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ),
@@ -272,8 +265,8 @@ class _ActionButtons extends StatelessWidget {
           onPressed: () => _onDeletePost(context, vm),
           icon: const Icon(Icons.delete_rounded),
           label: const Text('Approve Report & Delete Post'),
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.redAccent.withValues(alpha: 0.15),
+            style: FilledButton.styleFrom(
+            backgroundColor: Colors.redAccent.withOpacity(0.15),
             foregroundColor: Colors.redAccent,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
@@ -282,8 +275,8 @@ class _ActionButtons extends StatelessWidget {
         OutlinedButton(
           onPressed: () => _onDismiss(context, vm),
           style: OutlinedButton.styleFrom(
-            foregroundColor: _kMuted,
-            side: const BorderSide(color: _kBorder),
+            foregroundColor: AppTheme.muted,
+            side: BorderSide(color: AppTheme.border),
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           child: const Text('Dismiss Report'),
@@ -299,7 +292,7 @@ class _ActionButtons extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report approved.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kSuccess : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.success : Colors.redAccent,
         ),
       );
       if (ok) Navigator.of(context).pop();
@@ -311,17 +304,17 @@ class _ActionButtons extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: _kCard,
+        backgroundColor: AppTheme.card,
         title: const Text('Delete Post?',
             style: TextStyle(color: Colors.white)),
-        content: const Text(
+        content: Text(
           'This will permanently delete the post and approve the report.',
-          style: TextStyle(color: _kMuted),
+          style: TextStyle(color: AppTheme.muted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: _kMuted)),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.muted)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
@@ -339,7 +332,7 @@ class _ActionButtons extends StatelessWidget {
         SnackBar(
           content: Text(
               ok ? 'Post deleted.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
       if (ok) Navigator.of(context).pop();
@@ -352,7 +345,7 @@ class _ActionButtons extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report dismissed.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
       if (ok) Navigator.of(context).pop();
@@ -371,7 +364,7 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        color: _kMuted,
+        color: AppTheme.muted,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.4,
@@ -391,9 +384,9 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
         label.toUpperCase(),
@@ -415,18 +408,18 @@ class _SmallAvatar extends StatelessWidget {
     if (url != null && url!.isNotEmpty) {
       return CircleAvatar(
         radius: 18,
-        backgroundColor: const Color(0xFF2A2A2A),
+        backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
         onBackgroundImageError: (_, __) {},
       );
     }
     return CircleAvatar(
       radius: 18,
-      backgroundColor: _kAccent.withValues(alpha: 0.15),
+      backgroundColor: AppTheme.accent.withOpacity(0.15),
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: const TextStyle(
-            color: _kAccent, fontWeight: FontWeight.w700, fontSize: 12),
+            color: AppTheme.accent, fontWeight: FontWeight.w700, fontSize: 12),
       ),
     );
   }

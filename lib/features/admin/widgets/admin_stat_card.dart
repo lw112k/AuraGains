@@ -1,12 +1,5 @@
 import 'package:flutter/material.dart';
-
-// ─── Color tokens used across admin widgets ───────────────────────────────
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 enum AdminStatVariant { normal, warning, success }
 
@@ -27,17 +20,17 @@ class AdminStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = switch (variant) {
-      AdminStatVariant.warning => _kWarn,
-      AdminStatVariant.success => _kSuccess,
-      AdminStatVariant.normal => _kAccent,
+      AdminStatVariant.warning => AppTheme.warn,
+      AdminStatVariant.success => AppTheme.success,
+      AdminStatVariant.normal => AppTheme.accent,
     };
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kCard,
+        color: AppTheme.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withValues(alpha: 0.3)),
+        border: Border.all(color: accent.withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +45,7 @@ class AdminStatCard extends StatelessWidget {
                 child: Text(
                   label.toUpperCase(),
                   style: TextStyle(
-                    color: _kMuted,
+                    color: AppTheme.muted,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.2,

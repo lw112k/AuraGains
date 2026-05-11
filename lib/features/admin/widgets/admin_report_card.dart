@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/admin_model.dart';
+import 'package:auragains/features/admin/admin_palette.dart';
 
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
-const Color _kError = Color(0xFFEF5350);
+// Removed local color constants in favor of AppTheme colors
 
 class AdminReportCard extends StatelessWidget {
   const AdminReportCard({
@@ -27,17 +22,17 @@ class AdminReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isPending = (report.status ?? 'pending') == 'pending';
     final statusColor = switch (report.status ?? 'pending') {
-      'approved' => _kSuccess,
-      'dismissed' => _kMuted,
-      _ => _kWarn,
+      'approved' => AppTheme.success,
+      'dismissed' => AppTheme.muted,
+      _ => AppTheme.warn,
     };
 
     return Container(
       decoration: BoxDecoration(
-        color: _kCard,
+        color: AppTheme.card,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isPending ? _kWarn.withValues(alpha: 0.4) : _kBorder,
+          color: isPending ? AppTheme.warn.withOpacity(0.4) : AppTheme.border,
         ),
       ),
       child: Column(
@@ -51,9 +46,9 @@ class AdminReportCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.12),
+                    color: statusColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(100),
-                    border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
                   child: Text(
                     (report.status ?? 'pending').toUpperCase(),
@@ -69,8 +64,8 @@ class AdminReportCard extends StatelessWidget {
                 if (report.targetType != null)
                   Text(
                     report.targetType!.toUpperCase(),
-                    style: const TextStyle(
-                      color: _kMuted,
+                    style: TextStyle(
+                      color: AppTheme.muted,
                       fontSize: 10,
                       letterSpacing: 0.8,
                     ),
@@ -80,7 +75,7 @@ class AdminReportCard extends StatelessWidget {
           ),
 
           // ─ Reason ────────────────────────────────────────
-          Padding(
+            Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Text(
               report.reason ?? '(no reason provided)',
@@ -91,12 +86,12 @@ class AdminReportCard extends StatelessWidget {
           ),
 
           // ─ Meta ──────────────────────────────────────────
-          Padding(
+            Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Text(
               _formatDate(report.createDate),
-              style: const TextStyle(
-                color: _kMuted,
+              style: TextStyle(
+                color: AppTheme.muted,
                 fontSize: 11,
                 fontFamily: 'monospace',
               ),
@@ -104,8 +99,8 @@ class AdminReportCard extends StatelessWidget {
           ),
 
           // ─ Actions ───────────────────────────────────────
-          if (isPending) ...[
-            const Divider(color: _kBorder, height: 1),
+            if (isPending) ...[
+            Divider(color: AppTheme.border, height: 1),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(
@@ -117,7 +112,7 @@ class AdminReportCard extends StatelessWidget {
                         icon: const Icon(Icons.open_in_new_rounded, size: 14),
                         label: const Text('View'),
                         style: TextButton.styleFrom(
-                          foregroundColor: _kAccent,
+                          foregroundColor: AppTheme.accent,
                           textStyle: const TextStyle(fontSize: 12),
                         ),
                       ),
@@ -125,7 +120,7 @@ class AdminReportCard extends StatelessWidget {
                   Expanded(
                     child: TextButton(
                       onPressed: onDismiss,
-                      style: TextButton.styleFrom(foregroundColor: _kMuted),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.muted),
                       child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
                     ),
                   ),
@@ -133,8 +128,8 @@ class AdminReportCard extends StatelessWidget {
                     child: FilledButton(
                       onPressed: onApprove,
                       style: FilledButton.styleFrom(
-                        backgroundColor: _kSuccess.withValues(alpha: 0.15),
-                        foregroundColor: _kSuccess,
+                        backgroundColor: AppTheme.success.withOpacity(0.15),
+                        foregroundColor: AppTheme.success,
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         textStyle: const TextStyle(fontSize: 12),
                       ),

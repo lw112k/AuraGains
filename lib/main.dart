@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:device_preview/device_preview.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+
+//--- Repositories ---
+import 'features/message/repositories/message_repository.dart';
 
 // --- Services ---
 // The foundational layer. This interacts directly with external systems (Supabase).
@@ -10,6 +15,7 @@ import 'core/services/database_connection.dart';
 // --- ViewModels ---
 // The "State" layer. This acts as the global broadcast station holding user data.
 import 'features/auth/view_models/auth_viewmodel.dart';
+import 'features/message/view_models/message_view_model.dart';
 
 // --- Views ---
 // The "UI" layer. These are the different screens the user can see.
@@ -74,9 +80,12 @@ void main() async {
           // Post Feature:
           // ChangeNotifierProvider(create: (_) => PostViewModel()),
           //
-          // Message Feature:
-          // ChangeNotifierProvider(create: (_) => MessageViewModel()),
-          // -----------------------------------------------------------
+          ChangeNotifierProvider(
+            create: (_) => MessageViewModel(
+              repository: MessageRepository(),
+              currentUserId: Supabase.instance.client.auth.currentUser?.id ?? '', 
+            ),
+          ),
         ],
 
         // After building the Radio Tower and turning on all the stations,
@@ -136,7 +145,6 @@ class AuthWrapper extends StatelessWidget {
     switch (authViewModel.currentUser!.role) {
       case 'admin':
         return const AdminView();
-      // TODO: CHANGE TO ONBOARDING ONCE ONBOARDING FEATURE IS FINISHED
       case 'user':
         return const UserHomepageFrame();
       default:

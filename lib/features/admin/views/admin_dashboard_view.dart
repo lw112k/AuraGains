@@ -4,15 +4,8 @@ import '../view_models/admin_viewmodel.dart';
 import '../widgets/admin_stat_card.dart';
 import '../widgets/admin_report_card.dart';
 import 'admin_content_detail_view.dart';
-
-// ─── Local palette ────────────────────────────────────────────────────────────
-const Color _kBg = Color(0xFF121212);
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kWarn = Color(0xFFFF6B35);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
+import 'package:auragains/features/admin/admin_palette.dart';
+// Uses shared palette from AppTheme (no local palette)
 
 class AdminDashboardView extends StatefulWidget {
   const AdminDashboardView({super.key});
@@ -35,7 +28,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     return Consumer<AdminViewModel>(
       builder: (context, vm, _) {
         if (vm.isLoading) {
-          return const Center(child: CircularProgressIndicator(color: _kAccent));
+          return Center(child: CircularProgressIndicator(color: AppTheme.accent));
         }
         if (vm.errorMessage != null) {
           return _ErrorState(
@@ -44,8 +37,8 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
           );
         }
         return RefreshIndicator(
-          color: _kAccent,
-          backgroundColor: _kCard,
+          color: AppTheme.accent,
+          backgroundColor: AppTheme.card,
           onRefresh: vm.loadDashboard,
           child: ListView(
             padding: const EdgeInsets.all(16),
@@ -87,39 +80,12 @@ class _StatsGrid extends StatelessWidget {
           icon: Icons.people_rounded,
         ),
         AdminStatCard(
-          label: 'Total Posts',
-          value: s.totalPosts.toString(),
-          icon: Icons.photo_library_rounded,
-        ),
-        AdminStatCard(
           label: 'Pending Reports',
           value: s.pendingReports.toString(),
           icon: Icons.flag_rounded,
           variant: s.pendingReports > 0
               ? AdminStatVariant.warning
               : AdminStatVariant.normal,
-        ),
-        AdminStatCard(
-          label: 'Pending Apps',
-          value: s.pendingApplications.toString(),
-          icon: Icons.assignment_rounded,
-          variant: s.pendingApplications > 0
-              ? AdminStatVariant.warning
-              : AdminStatVariant.normal,
-        ),
-        AdminStatCard(
-          label: 'Banned Users',
-          value: s.bannedUsers.toString(),
-          icon: Icons.block_rounded,
-          variant: s.bannedUsers > 0
-              ? AdminStatVariant.warning
-              : AdminStatVariant.success,
-        ),
-        AdminStatCard(
-          label: 'Active Users',
-          value: (s.totalUsers - s.bannedUsers).toString(),
-          icon: Icons.verified_user_rounded,
-          variant: AdminStatVariant.success,
         ),
       ],
     );
@@ -138,22 +104,22 @@ class _ReportQueue extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _kCard,
+          color: AppTheme.card,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _kBorder),
+          border: Border.all(color: AppTheme.border),
         ),
-        child: const Column(
+        child: Column(
           children: [
-            Icon(Icons.check_circle_rounded, color: _kSuccess, size: 36),
-            SizedBox(height: 8),
-            Text(
+            Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 36),
+            const SizedBox(height: 8),
+            const Text(
               'No pending reports',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               'The queue is clear.',
-              style: TextStyle(color: _kMuted, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
           ],
         ),
@@ -186,7 +152,7 @@ class _ReportQueue extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report approved.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kSuccess : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.success : Colors.redAccent,
         ),
       );
     }
@@ -199,7 +165,7 @@ class _ReportQueue extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(ok ? 'Report dismissed.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
     }
@@ -226,8 +192,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: _kMuted,
+      style: TextStyle(
+        color: AppTheme.muted,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.4,
@@ -250,17 +216,17 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, color: _kMuted, size: 40),
+            Icon(Icons.cloud_off_rounded, color: AppTheme.muted, size: 40),
             const SizedBox(height: 12),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _kMuted, fontSize: 13),
+              style: TextStyle(color: AppTheme.muted, fontSize: 13),
             ),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: onRetry,
-              style: FilledButton.styleFrom(backgroundColor: _kAccent, foregroundColor: Colors.black),
+              style: FilledButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: Colors.black),
               child: const Text('Retry'),
             ),
           ],

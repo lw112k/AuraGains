@@ -1,14 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/admin_viewmodel.dart';
-
-const Color _kBg = Color(0xFF121212);
-const Color _kCard = Color(0xFF1E1E1E);
-const Color _kBorder = Color(0xFF2A2A2A);
-const Color _kAccent = Color(0xFF00E5FF);
-const Color _kSuccess = Color(0xFF00E676);
-const Color _kMuted = Color(0xFF9E9E9E);
-const Color _kWarn = Color(0xFFFF6B35);
+import 'package:auragains/features/admin/admin_palette.dart';
 
 class AdminVerifyView extends StatelessWidget {
   const AdminVerifyView({super.key});
@@ -16,9 +9,9 @@ class AdminVerifyView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: AppTheme.backgroundDark,
       appBar: AppBar(
-        backgroundColor: _kCard,
+        backgroundColor: AppTheme.card,
         foregroundColor: Colors.white,
         title: const Text(
           'Verify Application',
@@ -30,9 +23,9 @@ class AdminVerifyView extends StatelessWidget {
         builder: (context, vm, _) {
           final app = vm.detailApplication;
           if (app == null) {
-            return const Center(
+            return Center(
               child: Text('No application selected.',
-                  style: TextStyle(color: _kMuted)),
+                  style: TextStyle(color: AppTheme.muted)),
             );
           }
 
@@ -45,9 +38,9 @@ class AdminVerifyView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _kCard,
+                  color: AppTheme.card,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _kBorder),
+                  border: Border.all(color: AppTheme.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,8 +65,8 @@ class AdminVerifyView extends StatelessWidget {
                               if (app.email != null)
                                 Text(
                                   app.email!,
-                                  style: const TextStyle(
-                                      color: _kMuted, fontSize: 13),
+                                    style: TextStyle(
+                                      color: AppTheme.muted, fontSize: 13),
                                 ),
                             ],
                           ),
@@ -121,10 +114,10 @@ class AdminVerifyView extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           height: 120,
-                          color: _kCard,
-                          child: const Center(
+                          color: AppTheme.card,
+                          child: Center(
                             child: Icon(Icons.broken_image_rounded,
-                                color: _kMuted),
+                                color: AppTheme.muted),
                           ),
                         ),
                       ),
@@ -138,7 +131,7 @@ class AdminVerifyView extends StatelessWidget {
               if (app.createDate != null) ...[
                 Text(
                   'Applied ${_fmtDate(app.createDate!)}',
-                  style: const TextStyle(color: _kMuted, fontSize: 12),
+                  style: TextStyle(color: AppTheme.muted, fontSize: 12),
                 ),
                 const SizedBox(height: 20),
               ],
@@ -148,16 +141,16 @@ class AdminVerifyView extends StatelessWidget {
                 _SectionLabel('DECISION'),
                 const SizedBox(height: 10),
                 if (vm.isActionLoading)
-                  const Center(
-                      child: CircularProgressIndicator(color: _kAccent))
+                  Center(
+                      child: CircularProgressIndicator(color: AppTheme.accent))
                 else ...[
                   FilledButton.icon(
                     onPressed: () => _onApprove(context, vm, app),
                     icon: const Icon(Icons.check_circle_rounded),
                     label: const Text('Approve Application'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: _kSuccess.withValues(alpha: 0.15),
-                      foregroundColor: _kSuccess,
+                      backgroundColor: AppTheme.success.withOpacity(0.15),
+                      foregroundColor: AppTheme.success,
                       minimumSize: const Size(double.infinity, 48),
                     ),
                   ),
@@ -168,7 +161,7 @@ class AdminVerifyView extends StatelessWidget {
                     label: const Text('Reject Application'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.redAccent,
-                      side: const BorderSide(color: Colors.redAccent),
+                      side: BorderSide(color: Colors.redAccent),
                       minimumSize: const Size(double.infinity, 48),
                     ),
                   ),
@@ -176,17 +169,15 @@ class AdminVerifyView extends StatelessWidget {
               ] else
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
-                      color: _kCard,
+                      color: AppTheme.card,
                       borderRadius: BorderRadius.circular(100),
-                      border: Border.all(color: _kBorder),
+                      border: Border.all(color: AppTheme.border),
                     ),
                     child: Text(
                       'Status: ${(app.applicationStatus ?? 'pending').toUpperCase()}',
-                      style: const TextStyle(
-                          color: _kMuted, fontWeight: FontWeight.w600),
+                      style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -207,7 +198,7 @@ class AdminVerifyView extends StatelessWidget {
         SnackBar(
           content:
               Text(ok ? 'Application approved!' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kSuccess : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.success : Colors.redAccent,
         ),
       );
       if (ok) Navigator.of(context).pop();
@@ -222,7 +213,7 @@ class AdminVerifyView extends StatelessWidget {
         SnackBar(
           content:
               Text(ok ? 'Application rejected.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? _kCard : Colors.redAccent,
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
       if (ok) Navigator.of(context).pop();
@@ -240,8 +231,8 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: _kMuted,
+      style: TextStyle(
+        color: AppTheme.muted,
         fontSize: 11,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.4,
@@ -261,9 +252,9 @@ class _InfoBox extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _kCard,
+        color: AppTheme.card,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: AppTheme.border),
       ),
       child: Text(
         text,
@@ -292,11 +283,11 @@ class _Avatar extends StatelessWidget {
     }
     return CircleAvatar(
       radius: 28,
-      backgroundColor: _kAccent.withValues(alpha: 0.15),
+      backgroundColor: AppTheme.accent.withOpacity(0.15),
       child: Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: const TextStyle(
-            color: _kAccent, fontWeight: FontWeight.w700, fontSize: 18),
+        style: TextStyle(
+        color: AppTheme.accent, fontWeight: FontWeight.w700, fontSize: 18),
       ),
     );
   }
