@@ -28,7 +28,7 @@ class PostCard extends StatelessWidget {
   // if the post is a video(first media) or it doesn't have valid thumbnail, 
   // then we will use text fallback as preview, otherwise we will use the thumbnail or picture(first media) media as preview
   bool get shouldUseTextFallback { 
-    return post.firstMediaType == 'video' ||
+    return (post.firstMediaType == 'video' && !hasThumbnail) ||
         (!hasThumbnail && !hasPictureMedia);
   }
 
