@@ -18,6 +18,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   bool _isLoading = true;
   String? _error;
   RealtimeChannel? _channel;
+  String _searchQuery = '';
+  String _selectedRoleFilter = 'all';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,6 +32,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   @override
   void dispose() {
     _channel?.unsubscribe();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -117,6 +121,16 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Compute filtered users based on search + role filter
+    final filtered = _users.where((u) {
+      // Role filter
+      final roleMatch = _selectedRoleFilter == 'all' || u.role == _selectedRoleFilter;
+      // Search filter (username or email)
+      final q = _searchQuery.trim().toLowerCase();
+      final searchMatch = q.isEmpty || u.username.toLowerCase().contains(q) || u.email.toLowerCase().contains(q);
+      return roleMatch && searchMatch;
+    }).toList();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -138,8 +152,51 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   onRefresh: _loadUsers,
                   child: ListView.builder(
                     padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: _users.length,
-                    itemBuilder: (context, index) => _buildUserTile(_users[index]),
+                    itemCount: filtered.length + 1, // +1 for header (search + filters)
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Search Bar
+                            TextField(
+                              controller: _searchController,
+                              onChanged: (v) => setState(() => _searchQuery = v),
+                              style: AppTextStyles.bodyLarge,
+                              decoration: InputDecoration(
+                                hintText: 'Search by name or email',
+                                hintStyle: AppTextStyles.bodySmall,
+                                filled: true,
+                                fillColor: AppColors.surfaceVariant,
+                                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+
+                            // Role filter buttons (All | User | Expert | Admin)
+                            Row(
+                              children: [
+                                Expanded(child: _buildFilterButton('All', 'all')),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(child: _buildFilterButton('User', 'gym_member')),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(child: _buildFilterButton('Expert', 'expert')),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(child: _buildFilterButton('Admin', 'admin')),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                          ],
+                        );
+                      }
+
+                      final user = filtered[index - 1];
+                      return _buildUserTile(user);
+                    },
                   ),
                 ),
     );
@@ -151,64 +208,151 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: AppRadius.mdAll,
+        borderRadius: AppRadius.cardBorder,
         boxShadow: AppShadows.card,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            backgroundColor: AppColors.surfaceVariant,
-            child: Text(
-              user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
-              style: const TextStyle(color: AppColors.accent),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.lg),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(user.username, style: AppTextStyles.bodyLarge),
-                Text(user.email, style: AppTextStyles.bodySmall),
-                const SizedBox(height: AppSpacing.xs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _roleColor(user.role).withAlpha(30),
-                    borderRadius: AppRadius.smAll,
-                  ),
-                  child: Text(
-                    user.role,
-                    style: AppTextStyles.caption.copyWith(color: _roleColor(user.role)),
-                  ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar + Name
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: AppColors.surfaceVariant,
+                backgroundImage: user.avatarUrl.isNotEmpty ? NetworkImage(user.avatarUrl) as ImageProvider : null,
+                child: user.avatarUrl.isEmpty
+                    ? Text(
+                        user.username.isNotEmpty ? user.username[0].toUpperCase() : '?',
+                        style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user.username, style: AppTextStyles.headlineMedium),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(user.email, style: AppTextStyles.bodySmall),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text('Joined: ${_formatDate(user.createdAt)}', style: AppTextStyles.labelSmall),
+                  ],
                 ),
-              ],
-            ),
+              ),
+
+              // Role (top-right)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xxs),
+                decoration: BoxDecoration(
+                  color: _roleColor(user.role).withOpacity(0.12),
+                  borderRadius: AppRadius.smAll,
+                ),
+                child: Text(
+                  _roleLabel(user.role),
+                  style: AppTextStyles.labelSmall.copyWith(color: _roleColor(user.role), fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-            color: AppColors.surfaceVariant,
-            onSelected: (value) {
-              if (value == 'ban') {
-                _toggleBan(user);
-              } else {
-                _updateRole(user, value);
-              }
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'gym_member', child: Text('Set: Member')),
-              const PopupMenuItem(value: 'expert', child: Text('Set: Expert')),
-              const PopupMenuItem(value: 'admin', child: Text('Set: Admin')),
-              const PopupMenuDivider(),
-              const PopupMenuItem(value: 'ban', child: Text('Toggle Ban')),
+
+          const SizedBox(height: AppSpacing.md),
+
+          // Action Row: Edit (Change Role) | Ban
+          Row(
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => _showRoleDialog(user),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Change Role'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: () => _toggleBan(user),
+                icon: const Icon(Icons.block, size: 16, color: AppColors.warn),
+                label: Text(user.level.contains('banned') ? 'Unban' : 'Ban', style: TextStyle(color: AppColors.warn)),
+                style: OutlinedButton.styleFrom(side: BorderSide(color: AppColors.warn.withOpacity(0.25))),
+              ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime? dt) {
+    if (dt == null) return 'Unknown';
+    final d = dt.toLocal();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  Widget _buildFilterButton(String label, String roleValue) {
+    final selected = _selectedRoleFilter == roleValue;
+    if (selected) {
+      return ElevatedButton(
+        onPressed: () => setState(() => _selectedRoleFilter = roleValue),
+        style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+        child: Text(label, style: AppTextStyles.labelLarge.copyWith(color: Colors.black)),
+      );
+    }
+
+    return OutlinedButton(
+      onPressed: () => setState(() => _selectedRoleFilter = roleValue),
+      style: OutlinedButton.styleFrom(side: BorderSide(color: AppColors.border)),
+      child: Text(label, style: AppTextStyles.labelLarge.copyWith(color: AppColors.textMuted)),
+    );
+  }
+
+  void _showRoleDialog(AppUser user) {
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return SimpleDialog(
+          title: const Text('Change Role'),
+          children: [
+            SimpleDialogOption(
+              child: const Text('Member'),
+              onPressed: () {
+                Navigator.pop(context);
+                _updateRole(user, 'gym_member');
+              },
+            ),
+            SimpleDialogOption(
+              child: const Text('Expert'),
+              onPressed: () {
+                Navigator.pop(context);
+                _updateRole(user, 'expert');
+              },
+            ),
+            SimpleDialogOption(
+              child: const Text('Admin'),
+              onPressed: () {
+                Navigator.pop(context);
+                _updateRole(user, 'admin');
+              },
+            ),
+            SimpleDialogOption(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _roleLabel(String role) {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'expert':
+        return 'Expert';
+      default:
+        return 'User';
+    }
   }
 
   Color _roleColor(String role) {
