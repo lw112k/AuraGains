@@ -3,6 +3,8 @@ import 'package:auragains/features/message/views/message_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
+import '../../features/user_profile/views/user_profile_view.dart';
+import 'clickable_avatar.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
@@ -53,7 +55,6 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     final user = authVM.currentUser;
 
     return Scaffold(
-      // Background is handled globally by app_theme.dart Scaffold color
       appBar: AppBar(
         elevation: 0,
         bottom: PreferredSize(
@@ -61,7 +62,6 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
           child: Container(color: Colors.white10, height: 1.0),
         ),
         title: const Text('AURAGAINS'),
-        actions: [
         actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.search),
