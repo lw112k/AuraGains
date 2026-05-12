@@ -24,19 +24,93 @@ class AdminViewModel extends ChangeNotifier {
   String userSearchQuery = '';
   String userRoleFilter = 'All';
 
+  // Role normalization tokens — helps map DB values to UI labels and back.
+  static const Set<String> _userTokens = {
+    'gym_member',
+    'user',
+    'member'
+  };
+  static const Set<String> _expertTokens = {
+    'expert',
+    'trainer',
+    'pro_trainer'
+  };
+  static const Set<String> _adminTokens = {
+    'admin',
+    'super_admin',
+    'administrator'
+  };
+
+  String _labelForSystemRole(String? sysRole) {
+    final r = (sysRole ?? '').toLowerCase();
+    if (_userTokens.contains(r)) return 'User';
+    if (_expertTokens.contains(r)) return 'Expert';
+    if (_adminTokens.contains(r)) return 'Admin';
+    if (r.isEmpty) return 'User';
+    return r[0].toUpperCase() + r.substring(1);
+  }
+
+  String _dbTokenForLabel(String label) {
+    final l = label.toLowerCase();
+    // Prefer an existing DB token seen in _allUsers for this role, otherwise fall back to a sensible default.
+    if (l == 'user') {
+      final match = _allUsers.firstWhere(
+          (u) => _userTokens.contains((u.systemRole ?? '').toLowerCase()),
+          orElse: () => AdminUserModel(
+                userId: '',
+                username: '',
+                email: '',
+                systemRole: '',
+                isBanned: false,
+              ));
+      return (match.systemRole != null && match.systemRole!.isNotEmpty)
+          ? match.systemRole!
+          : 'gym_member';
+    }
+    if (l == 'expert') {
+      final match = _allUsers.firstWhere(
+          (u) => _expertTokens.contains((u.systemRole ?? '').toLowerCase()),
+          orElse: () => AdminUserModel(
+                userId: '',
+                username: '',
+                email: '',
+                systemRole: '',
+                isBanned: false,
+              ));
+      return (match.systemRole != null && match.systemRole!.isNotEmpty)
+          ? match.systemRole!
+          : 'expert';
+    }
+    if (l == 'admin') {
+      final match = _allUsers.firstWhere(
+          (u) => _adminTokens.contains((u.systemRole ?? '').toLowerCase()),
+          orElse: () => AdminUserModel(
+                userId: '',
+                username: '',
+                email: '',
+                systemRole: '',
+                isBanned: false,
+              ));
+      return (match.systemRole != null && match.systemRole!.isNotEmpty)
+          ? match.systemRole!
+          : 'admin';
+    }
+    // Unknown labels: pass through
+    return label;
+  }
+
   List<AdminUserModel> get filteredUsers {
     return _allUsers.where((u) {
       final q = userSearchQuery.toLowerCase();
       final matchesSearch = q.isEmpty ||
           u.username.toLowerCase().contains(q) ||
           u.email.toLowerCase().contains(q);
+      final roleLabel = _labelForSystemRole(u.systemRole);
       final matchesRole = userRoleFilter == 'All' ||
           (userRoleFilter == 'Banned' && u.isBanned) ||
-          (userRoleFilter == 'Expert' && u.systemRole == 'expert') ||
-          (userRoleFilter == 'Admin' && u.systemRole == 'admin') ||
-          (userRoleFilter == 'User' &&
-              u.systemRole == 'user' &&
-              !u.isBanned);
+          (userRoleFilter == 'Expert' && roleLabel == 'Expert') ||
+          (userRoleFilter == 'Admin' && roleLabel == 'Admin') ||
+          (userRoleFilter == 'User' && roleLabel == 'User' && !u.isBanned);
       return matchesSearch && matchesRole;
     }).toList();
   }
@@ -229,10 +303,12 @@ class AdminViewModel extends ChangeNotifier {
     isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.setSystemRole(userId, role);
-      _allUsers = _allUsers
+        // Normalize UI label to DB token before persisting.
+        final dbToken = _dbTokenForLabel(role);
+        await _repo.setSystemRole(userId, dbToken);
+        _allUsers = _allUsers
           .map((u) =>
-              u.userId == userId ? _copyUserWith(u, systemRole: role) : u)
+            u.userId == userId ? _copyUserWith(u, systemRole: dbToken) : u)
           .toList();
       return true;
     } catch (e) {

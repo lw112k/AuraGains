@@ -264,10 +264,10 @@ class _UserTile extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Email and joined date
-            Text(user.email, style: TextStyle(color: AppTheme.muted, fontSize: 13)),
+            // Email (primary) and email again (replaced Joined date with email)
+            Text(user.email, style: TextStyle(color: Colors.white, fontSize: 13)),
             const SizedBox(height: 4),
-            Text('Joined: ${user.registerDate != null ? '${user.registerDate!.year}-${user.registerDate!.month.toString().padLeft(2,'0')}-${user.registerDate!.day.toString().padLeft(2,'0')}' : 'Unknown'}', style: TextStyle(color: AppTheme.muted, fontSize: 12)),
+            Text(user.email, style: TextStyle(color: Colors.white, fontSize: 12)),
 
             const SizedBox(height: 10),
 
@@ -291,8 +291,8 @@ class _UserTile extends StatelessWidget {
                     );
                     if (chosen != null) onRoleChange(chosen);
                   },
-                  icon: Icon(Icons.edit, size: 14, color: Colors.white),
-                  label: const Text('Change Role'),
+                  icon: Icon(Icons.edit, size: 14, color: Colors.black),
+                  label: Text('Change Role', style: TextStyle(color: Colors.black)),
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
                 ),
                 const SizedBox(width: 8),
@@ -312,6 +312,7 @@ class _UserTile extends StatelessWidget {
       ),
     );
   }
+}
 
 // ─── Role filter button ─────────────────────────────────────────────────────
 class _RoleFilterBtn extends StatelessWidget {
@@ -329,16 +330,17 @@ class _RoleFilterBtn extends StatelessWidget {
       return ElevatedButton(
         onPressed: () => onTap(value),
         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
-        child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700)),
+        child: Text(label, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 12)),
       );
     }
 
     return OutlinedButton(
       onPressed: () => onTap(value),
       style: OutlinedButton.styleFrom(side: BorderSide(color: AppTheme.border)),
-      child: Text(label, style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600)),
+      child: Text(label, style: TextStyle(color: AppTheme.muted, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
+}
 
 // ─── Role filter chip ─────────────────────────────────────────────────────────
 class _RoleFilterChip extends StatelessWidget {
@@ -413,4 +415,12 @@ class _SmallAvatar extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatDate(DateTime? d) {
+  if (d == null) return 'Unknown';
+  final y = d.year.toString();
+  final m = d.month.toString().padLeft(2, '0');
+  final day = d.day.toString().padLeft(2, '0');
+  return '$y-$m-$day';
 }
