@@ -103,4 +103,20 @@ class AuthViewModel extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners(); // Forces the AuthWrapper back to the Login View
   }
+
+  Future<void> refreshUser() async {
+    if (_currentUser == null) return;
+
+    try {
+      // Fetch the latest profile data using the existing repo method
+      final updatedUser = await _authRepo.getUserProfile(_currentUser!.id);
+
+      if (updatedUser != null) {
+        _currentUser = updatedUser;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error refreshing user: $e");
+    }
+  }
 }

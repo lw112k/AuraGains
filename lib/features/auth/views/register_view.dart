@@ -97,11 +97,11 @@ class _RegisterViewState extends State<RegisterView> {
               currentUserId: userId, 
             );
 
-            // Push to Onboarding view and remove the Register screen from the backstack
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OnboardingView(viewModel: onboardingViewModel),
+              // Push to Onboarding view and remove the Register screen from the backstack
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OnboardingView(viewModel: onboardingViewModel),
               ),
             );
           } else {

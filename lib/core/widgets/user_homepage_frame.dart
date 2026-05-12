@@ -1,8 +1,11 @@
 import 'package:auragains/features/challenges/views/challenge_view.dart';
 import 'package:auragains/features/post_feed/views/pages/home/home_view.dart';
+import 'package:auragains/features/message/views/message_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
+import '../../features/user_profile/views/user_profile_view.dart';
+import 'clickable_avatar.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
@@ -43,25 +46,24 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     const HomeView(), // Index 0: Replace with HomeView()
     const ChallengeView(), // Index 1: Replace with ChallengeView()
     const Center(child: Text('Post')), // Index 2: Replace with PostView()
-    const Center(child: Text('Message')), // Index 3: Replace with MessageView()
+    const MessageView(), // Index 3: Replace with MessageView()
     const Center(child: Text('Expert')), // Index 4: Replace with ExpertView()
   ];
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthViewModel>().currentUser;
+    final authVM = context.watch<AuthViewModel>();
+    final user = authVM.currentUser;
 
     return Scaffold(
-      // Background is handled globally by app_theme.dart Scaffold color
       appBar: AppBar(
-        // Title style is handled globally by app_theme.dart AppBar theme
         elevation: 0,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
           child: Container(color: Colors.white10, height: 1.0),
         ),
         title: const Text('AURAGAINS'),
-        actions: [
+        actions: <Widget>[
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
@@ -72,16 +74,23 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
             padding: const EdgeInsets.only(right: 16.0, left: 8.0),
             child: PopupMenuButton<String>(
               offset: const Offset(0, 45),
-              // 💡 Local styling restored for the popup menu
               color: const Color(0xFF1E1E1E),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
               onSelected: (String value) {
-                if (value == 'profile') {
-                  print("Navigate to Profile");
+                if (value == 'profile' && user != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfileView(
+                        targetUserId: user.id,
+                        currentUserId: user.id,
+                      ),
+                    ),
+                  );
                 } else if (value == 'logout') {
-                  context.read<AuthViewModel>().logout();
+                  authVM.logout();
                 }
               },
               itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -109,19 +118,11 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
                   ),
                 ),
               ],
-              child: CircleAvatar(
+              child: ClickableAvatar(
+                profilePicUrl: user?.profilePicUrl,
+                username: user?.username,
                 radius: 16,
-                backgroundColor: Colors.blueAccent,
-                child: Text(
-                  (user?.username != null && user!.username.isNotEmpty)
-                      ? user.username[0].toUpperCase()
-                      : 'A',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                onTap: null,
               ),
             ),
           ),
@@ -138,14 +139,13 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
       onTap: (index) => setState(() => _currentIndex = index),
-      // 💡 Local styling restored for the navigation bar
       type: BottomNavigationBarType.fixed,
       backgroundColor: const Color(0xFF1E1E1E),
       selectedItemColor: Colors.blueAccent,
       unselectedItemColor: Colors.grey,
       showSelectedLabels: false,
       showUnselectedLabels: false,
-      items: const [
+      items: const <BottomNavigationBarItem>[
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home),

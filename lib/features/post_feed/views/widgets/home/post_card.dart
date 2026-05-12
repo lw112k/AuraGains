@@ -142,7 +142,7 @@ class PostCard extends StatelessWidget {
       margin: const EdgeInsets.all(8),
 
       decoration: BoxDecoration(
-        color: const Color.fromARGB(126, 20, 20, 20),
+        color: const Color.fromARGB(223, 0, 0, 0),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
@@ -357,7 +357,8 @@ class PostCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  height: 1.4
+                  height: 1.4,
+                  color: Color.fromARGB(255, 139, 139, 139),
                 ),
               ),
             ),
