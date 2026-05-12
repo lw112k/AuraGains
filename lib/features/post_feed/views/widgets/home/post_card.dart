@@ -25,7 +25,9 @@ class PostCard extends StatelessWidget {
         post.firstMediaUrl!.isNotEmpty;
   }
 
-  bool get shouldUseTextFallback {
+  // if the post is a video(first media) or it doesn't have valid thumbnail, 
+  // then we will use text fallback as preview, otherwise we will use the thumbnail or picture(first media) media as preview
+  bool get shouldUseTextFallback { 
     return post.firstMediaType == 'video' ||
         (!hasThumbnail && !hasPictureMedia);
   }
@@ -43,7 +45,7 @@ class PostCard extends StatelessWidget {
   }
 
   // ===================================
-  // RANDOM BACKGROUND COLOR
+  // RANDOM BACKGROUND COLOR (Text Fallback only)
   // ===================================
   Color get randomColor {
     final colors = [
@@ -140,28 +142,28 @@ class PostCard extends StatelessWidget {
       margin: const EdgeInsets.all(8),
 
       decoration: BoxDecoration(
-        color: const Color(0xFF121212),
+        color: const Color.fromARGB(126, 20, 20, 20),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
             blurRadius: 18,
             offset: const Offset(0, 8),
-            color: Colors.black.withValues(alpha: 0.25),
+            color: const Color.fromARGB(255, 95, 95, 95).withValues(alpha: 0.25),
           ),
         ],
       ),
 
-      clipBehavior: Clip.antiAlias,
+      clipBehavior: Clip.antiAlias, // clip the content to prevent it from overflowing the border radius
 
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+
         children: [
 
           // ===================================
           // MEDIA AREA
           // ===================================
-          Stack(
+          Stack( // use stack to show the media preview, user info at top and like count and time ago info at bottom of the media preview
             children: [
 
               // IMAGE / TEXT FALLBACK
@@ -174,7 +176,7 @@ class PostCard extends StatelessWidget {
 
                         fit: BoxFit.cover,
 
-                        // IMAGE ERROR FALLBACK
+                        // IMAGE ERROR FALLBACK (if the image url is invalid or failed to load, then we will show the text fallback instead)
                         errorBuilder: (
                           context,
                           error,
@@ -197,14 +199,10 @@ class PostCard extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin:
-                          Alignment.topCenter,
+                      begin: Alignment.topCenter,
                       end: Alignment.center,
                       colors: [
-                        Colors.black
-                            .withValues(
-                          alpha: 0.55,
-                        ),
+                        Colors.black.withValues(alpha: 0.5),
                         Colors.transparent,
                       ],
                     ),
@@ -227,16 +225,15 @@ class PostCard extends StatelessWidget {
                       radius: 15,
 
                       backgroundImage:
-                          post.creatorProfileUrl != null
+                          post.creatorProfileUrl != null // use profile picture as avatar if the url is valid, otherwise show default avatar with person icon
                               ? NetworkImage(
                                   post.creatorProfileUrl!,
                                 )
                               : null,
 
-                      backgroundColor:
-                          Colors.grey.shade300,
+                      backgroundColor:Colors.grey.shade300,
 
-                      child: post.creatorProfileUrl == null
+                      child: post.creatorProfileUrl == null // if the profile url is null, show person icon in the avatar, otherwise show the profile picture, this is to prevent showing empty avatar when the profile url is invalid
                           ? Icon(
                               Icons.person,
                               size: 18,
@@ -245,7 +242,7 @@ class PostCard extends StatelessWidget {
                           : null,
                     ),
 
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 10), // spacing between avatar and username
 
                     Expanded(
                       child: Text(
@@ -255,8 +252,7 @@ class PostCard extends StatelessWidget {
 
                         overflow: TextOverflow.ellipsis,
 
-                        style:
-                            const TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -269,8 +265,7 @@ class PostCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(5),
 
-                        decoration:
-                            BoxDecoration(
+                        decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.25),
 
                           shape: BoxShape.circle,
@@ -290,7 +285,7 @@ class PostCard extends StatelessWidget {
               ),
 
               // ===================================
-              // BOTTOM INFO
+              // BOTTOM INFO (like count and time ago)
               // ===================================
               Positioned(
                 bottom: 12,
@@ -310,19 +305,15 @@ class PostCard extends StatelessWidget {
                           size: 15,
                         ),
 
-                        const SizedBox(
-                          width: 5,
-                        ),
+                        const SizedBox(width: 5),
 
                         Text(
                           '${post.likeCount}', // total like number
 
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
 
-                            fontWeight:
-                                FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -331,10 +322,8 @@ class PostCard extends StatelessWidget {
                     Text(
                       timeAgo, // Time ago text
 
-                      style:
-                          const TextStyle(
-                        color:
-                            Colors.white70,
+                      style: const TextStyle(
+                        color:Colors.white70,
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                       ),
@@ -349,10 +338,9 @@ class PostCard extends StatelessWidget {
           // TITLE
           // ===================================
           Padding(
-            padding:
-                const EdgeInsets.symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 14,
-              vertical: 14,
+              vertical: 6,
             ),
 
             child: Center(

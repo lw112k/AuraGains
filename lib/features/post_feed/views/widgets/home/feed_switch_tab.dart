@@ -1,18 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:auragains/features/post_feed/view_models/home/fyp_feed_viewmodel.dart';
-import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
+import 'package:auragains/features/post_feed/view_models/home/home_viewmodel.dart';
 
 class FeedSwitchTab extends StatelessWidget {
   const FeedSwitchTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<FypFeedViewModel>();
-
-    final authVm = context.read<AuthViewModel>();
-    final userId = authVm.currentUser!.id;
-
+    final vm = context.watch<HomeViewModel>();
+    
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: 18,
@@ -26,16 +22,13 @@ class FeedSwitchTab extends StatelessWidget {
             child: _TabButton(
               text: 'For You Page',
 
-              isSelected: vm.selectedTab == 0,
+              isSelected: vm.selectedTab == 0, // if vm's selectedTab is 0, then this tab is selected
 
               onPressed: () async {
 
-                // 已经在 FYP
                 if (vm.selectedTab == 0) {
 
-                  await vm.refreshFeed(
-                    userId: userId,
-                  );
+                  await vm.refreshFeed(); // refresh entire feed
 
                   return;
                 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:auragains/features/post_feed/models/post_preview_model.dart';
 import 'package:auragains/features/post_feed/repositories/feed_repository.dart';
 
-class FypFeedViewModel extends ChangeNotifier {
+class HomeViewModel extends ChangeNotifier {
   final FeedRepository _repository = FeedRepository();
 
   final ScrollController scrollController = ScrollController();
@@ -17,20 +17,21 @@ class FypFeedViewModel extends ChangeNotifier {
 
   int selectedTab = 0;
 
-  FypFeedViewModel() {
+  HomeViewModel(String userId) {
     scrollController.addListener(_onScroll);
+    currentUserId = userId;
   }
 
+  // Used for feed switch tab (FYP / Categories)
   void changeTab(int index) {
     selectedTab = index;
     notifyListeners();
   }
 
-  void _onScroll() {
-    if (
-      scrollController.position.pixels >
-      scrollController.position.maxScrollExtent - 300
-    ) {
+  // when user scroll to the bottom of the feed, load more feed, 200 is the threshold, you can adjust it based on your need, 
+  // if you want to load more feed earlier, you can increase the threshold, otherwise decrease it
+  void _onScroll() { 
+    if ( scrollController.position.pixels > scrollController.position.maxScrollExtent - 200) { 
       loadMore();
     }
   }
@@ -44,13 +45,13 @@ class FypFeedViewModel extends ChangeNotifier {
     try {
       final newPosts = await _repository.getFypFeed(
         userId: currentUserId!,
-        offset: posts.length,
+        offset: posts.length, // offset is the number of posts already loaded, so that we can load the next batch of posts
       );
 
       if (newPosts.isEmpty) {
         hasMore = false;
       } else {
-        posts.addAll(newPosts);
+        posts.addAll(newPosts); // add new posts to the existing posts list, so that we can show the new posts in the feed
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -60,18 +61,13 @@ class FypFeedViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadFeed({
-    required String userId,
-  }) async {
-
-    currentUserId = userId;
-
+  Future<void> loadFeed() async {
     isLoading = true;
     notifyListeners();
 
     try {
       posts = await _repository.getFypFeed(
-        userId: userId,
+        userId: currentUserId!,
         offset: 0,
       );
     } catch (e) {
@@ -82,25 +78,21 @@ class FypFeedViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> refreshFeed({
-    required String userId,
-  }) async {
-
+  Future<void> refreshFeed() async {
     _repository.refreshSeed();
-
     hasMore = true;
 
     if (scrollController.hasClients) {
-      await scrollController.animateTo(
+      await scrollController.animateTo( // auto scroll back to top when refresh feed
         0,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeOut,
       );
     }
 
     posts = await _repository.getFypFeed(
-      userId: userId,
-      offset: 0,
+      userId: currentUserId!,
+      offset: 0, 
     );
 
     notifyListeners();
@@ -108,7 +100,7 @@ class FypFeedViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    scrollController.dispose();
+    scrollController.dispose(); // dispose the scroll controller when the viewmodel is disposed, to prevent memory leak
     super.dispose();
   }
 }
