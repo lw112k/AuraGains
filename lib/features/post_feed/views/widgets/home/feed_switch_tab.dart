@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:auragains/features/post_feed/view_models/home/home_viewmodel.dart';
+import 'package:auragains/features/post_feed/view_models/home/switch_tab_viewmodel.dart';
+import 'package:auragains/features/post_feed/view_models/home/fyp_viewmodel.dart';
 
 class FeedSwitchTab extends StatelessWidget {
   const FeedSwitchTab({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<HomeViewModel>();
+    final switchTabVm = context.watch<SwitchTabViewModel>();
+    final fypVm = context.watch<FypViewModel>();
     
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -22,18 +24,18 @@ class FeedSwitchTab extends StatelessWidget {
             child: _TabButton(
               text: 'For You Page',
 
-              isSelected: vm.selectedTab == 0, // if vm's selectedTab is 0, then this tab is selected
+              isSelected: switchTabVm.selectedTab == 0, // if switchTabVm's selectedTab is 0, then this tab is selected
 
               onPressed: () async {
 
-                if (vm.selectedTab == 0) {
+                if (switchTabVm.selectedTab == 0) {
 
-                  await vm.refreshFeed(); // refresh entire feed
+                  await fypVm.refreshFeed(); // refresh entire feed
 
                   return;
                 }
 
-                vm.changeTab(0);
+                switchTabVm.changeTab(0);
               },
             ),
           ),
@@ -42,10 +44,10 @@ class FeedSwitchTab extends StatelessWidget {
             child: _TabButton(
               text: 'Categories',
 
-              isSelected: vm.selectedTab == 1,
+              isSelected: switchTabVm.selectedTab == 1,
 
               onPressed: () {
-                vm.changeTab(1);
+                switchTabVm.changeTab(1);
               },
             ),
           ),

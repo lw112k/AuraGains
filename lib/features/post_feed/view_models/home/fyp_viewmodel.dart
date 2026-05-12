@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+
 import 'package:auragains/features/post_feed/models/post_preview_model.dart';
 import 'package:auragains/features/post_feed/repositories/feed_repository.dart';
 
-class HomeViewModel extends ChangeNotifier {
+class FypViewModel extends ChangeNotifier {
   final FeedRepository _repository = FeedRepository();
 
   final ScrollController scrollController = ScrollController();
 
-  String? currentUserId;
+  final String currentUserId;
 
   List<PostPreviewModel> posts = [];
 
@@ -15,17 +16,8 @@ class HomeViewModel extends ChangeNotifier {
   bool isFetchingMore = false;
   bool hasMore = true;
 
-  int selectedTab = 0;
-
-  HomeViewModel(String userId) {
+  FypViewModel(this.currentUserId) {
     scrollController.addListener(_onScroll);
-    currentUserId = userId;
-  }
-
-  // Used for feed switch tab (FYP / Categories)
-  void changeTab(int index) {
-    selectedTab = index;
-    notifyListeners();
   }
 
   // when user scroll to the bottom of the feed, load more feed, 200 is the threshold, you can adjust it based on your need, 
@@ -36,6 +28,23 @@ class HomeViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> loadFeed() async {
+    isLoading = true;
+    notifyListeners();
+
+    try {
+      posts = await _repository.getFypFeed(
+        userId: currentUserId,
+        offset: 0,
+      );
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+
+    isLoading = false;
+    notifyListeners();
+  }
+
   Future<void> loadMore() async {
     if (isFetchingMore || !hasMore) return;
 
@@ -44,7 +53,7 @@ class HomeViewModel extends ChangeNotifier {
 
     try {
       final newPosts = await _repository.getFypFeed(
-        userId: currentUserId!,
+        userId: currentUserId,
         offset: posts.length, // offset is the number of posts already loaded, so that we can load the next batch of posts
       );
 
@@ -61,23 +70,6 @@ class HomeViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadFeed() async {
-    isLoading = true;
-    notifyListeners();
-
-    try {
-      posts = await _repository.getFypFeed(
-        userId: currentUserId!,
-        offset: 0,
-      );
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-
-    isLoading = false;
-    notifyListeners();
-  }
-
   Future<void> refreshFeed() async {
     _repository.refreshSeed();
     hasMore = true;
@@ -91,7 +83,7 @@ class HomeViewModel extends ChangeNotifier {
     }
 
     posts = await _repository.getFypFeed(
-      userId: currentUserId!,
+      userId: currentUserId,
       offset: 0, 
     );
 
