@@ -94,7 +94,7 @@ class _AdminUsersViewState extends State<AdminUsersView> {
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         itemCount: vm.filteredUsers.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                           Divider(color: AppTheme.border, height: 1),
                         itemBuilder: (ctx, i) {
                           final user = vm.filteredUsers[i];
@@ -354,7 +354,7 @@ class _SmallAvatar extends StatelessWidget {
         radius: 20,
         backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
       );
     }
     return CircleAvatar(

@@ -116,7 +116,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholderThumb(),
+                      errorBuilder: (_, _, _) => _placeholderThumb(),
                     )
                   : _placeholderThumb(),
             ),

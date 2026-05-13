@@ -185,7 +185,7 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: mediaUrls.length,
-                    separatorBuilder: (_, __) =>
+                    separatorBuilder: (_, _) =>
                         const SizedBox(width: 8),
                     itemBuilder: (_, i) => ClipRRect(
                       borderRadius: BorderRadius.circular(10),
@@ -194,7 +194,7 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                         height: 200,
                         width: 200,
                         fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (_, _, _) => Container(
                           height: 200,
                           width: 200,
                             color: AppTheme.card,
@@ -410,7 +410,7 @@ class _SmallAvatar extends StatelessWidget {
         radius: 18,
         backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
       );
     }
     return CircleAvatar(

@@ -77,26 +77,26 @@ abstract final class AppRouter {
         // Splash / entry point while session is being restored.
         GoRoute(
           path: AppRoutes.root,
-          builder: (_, __) => const SplashScreen(),
+          builder: (_, _) => const SplashScreen(),
         ),
 
         // Unauthenticated entry point.
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, __) => const LoginView(),
+          builder: (_, _) => const LoginView(),
         ),
 
         // Standard user home.
         GoRoute(
           path: AppRoutes.userHome,
-          builder: (_, __) => const UserHome(),
+          builder: (_, _) => const UserHome(),
         ),
 
         // ── Admin routes ────────────────────────────────────────────────
         // The shell owns the bottom nav bar (Content | Dashboard | Users).
         GoRoute(
           path: AppRoutes.adminPanel,
-          builder: (_, __) => ChangeNotifierProvider(
+          builder: (_, _) => ChangeNotifierProvider(
             create: (_) => AdminProvider()..loadData(),
             child: const AdminShell(),
           ),

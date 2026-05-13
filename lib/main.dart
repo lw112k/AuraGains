@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 //--- Repositories ---
 import 'features/message/repositories/message_repository.dart';
-import 'features/user_profile/repositories/user_profile_repository.dart';
 
 // --- Services ---
 // The foundational layer. This interacts directly with external systems (Supabase).
@@ -16,7 +15,6 @@ import 'core/services/database_connection.dart';
 // The "State" layer. This acts as the global broadcast station holding user data.
 import 'features/auth/view_models/auth_viewmodel.dart';
 import 'features/message/view_models/message_view_model.dart';
-import 'features/user_profile/view_models/user_profile_viewmodel.dart';
 
 // --- Views ---
 // The "UI" layer. These are the different screens the user can see.

@@ -36,7 +36,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
           .eq('post_id', widget.postId)
           .limit(1);
       setState(() {
-        _post = rows.isNotEmpty ? rows.first as Map<String, dynamic> : null;
+        _post = rows.isNotEmpty ? rows.first : null;
         _isLoading = false;
       });
     } catch (e) {
@@ -131,7 +131,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                 width: double.infinity,
                 height: 220,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   height: 220,
                   color: AppColors.surfaceVariant,
                   child: const Icon(Icons.broken_image, size: 48, color: AppColors.textMuted),

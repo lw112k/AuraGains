@@ -58,7 +58,7 @@ class _AdminReportsViewState extends State<AdminReportsView> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: vm.filteredReports.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
                         itemBuilder: (ctx, i) {
                           final r = vm.filteredReports[i];

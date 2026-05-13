@@ -399,10 +399,10 @@ class _CertTile extends StatelessWidget {
         child: CachedNetworkImage(
           imageUrl: url,
           fit: BoxFit.cover,
-          placeholder: (_, __) => const Center(
+          placeholder: (_, _) => const Center(
             child: CircularProgressIndicator(color: AppColors.accent),
           ),
-          errorWidget: (_, __, ___) => const Center(
+          errorWidget: (_, _, _) => const Center(
             child: Icon(Icons.broken_image, color: AppColors.textMuted),
           ),
         ),

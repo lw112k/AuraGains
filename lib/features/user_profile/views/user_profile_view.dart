@@ -7,10 +7,10 @@ class UserProfileView extends StatelessWidget {
   final String currentUserId;
 
   const UserProfileView({
-    Key? key,
+    super.key,
     required this.targetUserId,
     required this.currentUserId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -583,8 +583,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
 class EditObjectiveBottomSheet extends StatelessWidget {
   final UserProfileViewModel viewModel;
 
-  const EditObjectiveBottomSheet({Key? key, required this.viewModel})
-    : super(key: key);
+  const EditObjectiveBottomSheet({super.key, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
@@ -641,8 +640,7 @@ class EditObjectiveBottomSheet extends StatelessWidget {
 class EditStatsBottomSheet extends StatefulWidget {
   final UserProfileViewModel viewModel;
 
-  const EditStatsBottomSheet({Key? key, required this.viewModel})
-    : super(key: key);
+  const EditStatsBottomSheet({super.key, required this.viewModel});
 
   @override
   State<EditStatsBottomSheet> createState() => _EditStatsBottomSheetState();

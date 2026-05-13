@@ -38,9 +38,9 @@ class AdminRepository {
             .select('column_name')
             .eq('table_name', table)
             .eq('table_schema', 'public');
-        if (colsResp is List && colsResp.isNotEmpty) {
+        if (colsResp.isNotEmpty) {
           cols = colsResp
-              .map((c) => (c as Map<String, dynamic>)['column_name'] as String)
+              .map((c) => (c)['column_name'] as String)
               .toSet();
         }
       } catch (_) {
@@ -244,7 +244,7 @@ class AdminRepository {
   Future<int> fetchUserCount() async {
     final cols = await _ensureTableColumns('user');
     final result = await _db.from('user').select('user_id');
-    return result is List ? result.length : 0;
+    return result.length;
   }
 
   Future<List<Map<String, dynamic>>> fetchPendingReports() async {
@@ -258,7 +258,7 @@ class AdminRepository {
   Future<Map<String, dynamic>?> fetchUserById(String userId) async {
     final data = await _db.from('user').select().eq('user_id', userId).maybeSingle();
     if (data == null) return null;
-    return data as Map<String, dynamic>;
+    return data;
   }
 
   Future<void> approveReport(String reportId) async {
@@ -315,7 +315,7 @@ class AdminRepository {
     if (fields.isEmpty) fields.add('user_id');
     final data = await _db.from('user').select(fields.join(', ')).eq('user_id', userId).maybeSingle();
     if (data == null) return null;
-    return AdminUserModel.fromJson(data as Map<String, dynamic>);
+    return AdminUserModel.fromJson(data);
   }
 
   Future<List<String>> fetchPostMediaUrls(int postId) async {
@@ -376,7 +376,7 @@ class AdminRepository {
         AdminApplicationModel.fromJson(
           row as Map<String, dynamic>,
           imageUrls: imageUrls,
-          userJson: userRaw as Map<String, dynamic>?,
+          userJson: userRaw,
         ),
       );
     }
@@ -429,6 +429,6 @@ class AdminRepository {
     final idField = cols.contains('expert_application_id') ? 'expert_application_id' : (cols.contains('id') ? 'id' : 'expert_application_id');
     final data = await _db.from('expert_application').select(fields.join(',')).eq(idField, applicationId).maybeSingle();
     if (data == null) return null;
-    return data as Map<String, dynamic>;
+    return data;
   }
 }

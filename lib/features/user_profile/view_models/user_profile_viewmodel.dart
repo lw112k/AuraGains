@@ -99,7 +99,7 @@ class UserProfileViewModel extends ChangeNotifier {
       imageQuality: 70,
     );
 
-    if (pickedFile != null && targetUserId != null) {
+    if (pickedFile != null) {
       _isUploadingPic = true;
       notifyListeners();
 
@@ -108,7 +108,7 @@ class UserProfileViewModel extends ChangeNotifier {
         final String fileExtension = pickedFile.path.split('.').last;
 
         final newUrl = await _repository.uploadProfilePicture(
-          targetUserId!,
+          targetUserId,
           imageBytes,
           fileExtension,
         );

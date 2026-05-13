@@ -58,7 +58,7 @@ class _AdminApplicationsViewState extends State<AdminApplicationsView> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(16),
                         itemCount: vm.filteredApplications.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                             const SizedBox(height: 12),
                         itemBuilder: (ctx, i) {
                           final app = vm.filteredApplications[i];
