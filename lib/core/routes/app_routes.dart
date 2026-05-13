@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/admin/views/admin_shell.dart';
 import '../../features/admin/views/content_detail_screen.dart';
@@ -8,6 +9,7 @@ import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../features/homepage/views/home_view.dart';
 import '../../core/widgets/splash_screen.dart';
+import '../../features/expert/views/expert_application_views.dart';
 import 'package:auragains/features/admin/providers/admin_provider.dart';
 
 // ─────────────────────────────────────────────────────────
@@ -109,6 +111,15 @@ abstract final class AppRouter {
               ),
             ),
           ],
+        ),
+        GoRoute(
+          path: '/apply-expert',
+          builder: (context, state) {
+            // Grab the currently logged-in user's ID directly from Supabase
+            final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+            
+            return TrainerApplicationScreen(currentUserId: currentUserId);
+          },
         ),
       ],
     );

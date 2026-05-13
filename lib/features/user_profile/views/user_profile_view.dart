@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
+import '../../expert/views/expert_application_views.dart';
 
 class UserProfileView extends StatelessWidget {
   final String targetUserId;
@@ -191,7 +192,7 @@ class UserProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _buildVerificationBadge(viewModel.expertStatus),
+        _buildVerificationBadge(context, viewModel.expertStatus),
 
         const SizedBox(height: 16),
         Row(
@@ -223,7 +224,7 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildVerificationBadge(String? status) {
+  Widget _buildVerificationBadge(BuildContext context, String? status) {
     if (status == 'approved') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -258,7 +259,12 @@ class UserProfileView extends StatelessWidget {
       );
     } else {
       return GestureDetector(
-        onTap: () {},
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) =>
+                TrainerApplicationScreen(currentUserId: currentUserId),
+          ),
+        ),
         child: const Text(
           'Verify as Expert?',
           style: TextStyle(
