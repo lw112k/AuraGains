@@ -6,6 +6,8 @@ import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 import 'package:auragains/features/post_feed/models/post_preview_model.dart';
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 import 'package:auragains/features/post_feed/views/pages/post_detail/post_detail_view.dart';
+import 'package:auragains/core/widgets/clickable_avatar.dart';
+import 'package:auragains/features/user_profile/views/user_profile_view.dart';
 
 class PostCard extends StatelessWidget {
   final PostPreviewModel post;
@@ -141,6 +143,8 @@ class PostCard extends StatelessWidget {
   // ===================================
   @override
   Widget build(BuildContext context) {
+    final authVm = context.read<AuthViewModel>();
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -251,25 +255,21 @@ class PostCard extends StatelessWidget {
                     child: Row(
                       children: [
 
-                        CircleAvatar(
+                        ClickableAvatar(
                           radius: 15,
-
-                          backgroundImage:
-                              post.creatorProfileUrl != null // use profile picture as avatar if the url is valid, otherwise show default avatar with person icon
-                                  ? NetworkImage(
-                                      post.creatorProfileUrl!,
-                                    )
-                                  : null,
-
-                          backgroundColor:Colors.grey.shade300,
-
-                          child: post.creatorProfileUrl == null // if the profile url is null, show person icon in the avatar, otherwise show the profile picture, this is to prevent showing empty avatar when the profile url is invalid
-                              ? Icon(
-                                  Icons.person,
-                                  size: 18,
-                                  color: Colors.grey.shade700,
-                                )
-                              : null,
+                          profilePicUrl: post.creatorProfileUrl,
+                          username: post.creatorUsername,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserProfileView(
+                                  targetUserId: post.creatorId,
+                                  currentUserId: authVm.currentUser!.id,
+                                ),
+                              ),
+                            );
+                          },
                         ),
 
                         const SizedBox(width: 10), // spacing between avatar and username

@@ -5,6 +5,7 @@ class PostPreviewModel {
   final String? firstMediaUrl;
   final String? firstMediaType;
 
+  final String creatorId;
   final String creatorUsername;
   final String? creatorProfileUrl;
 
@@ -17,6 +18,7 @@ class PostPreviewModel {
     required this.thumbnailUrl,
     required this.firstMediaUrl,
     required this.firstMediaType,
+    required this.creatorId,
     required this.creatorUsername,
     required this.creatorProfileUrl,
     required this.likeCount,
@@ -32,6 +34,7 @@ class PostPreviewModel {
       thumbnailUrl: json['thumbnail_url'],
       firstMediaUrl: json['first_media_url'],
       firstMediaType: json['first_media_type'],
+      creatorId: json['creator_id'],
       creatorUsername: json['creator_username'],
       creatorProfileUrl: json['creator_profile_url'],
       likeCount: json['post_like'] ?? 0,

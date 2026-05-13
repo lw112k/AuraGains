@@ -6,6 +6,8 @@ import 'package:photo_view/photo_view.dart';
 import 'package:auragains/features/post_feed/models/post_media_model.dart';
 import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
+import 'package:auragains/core/widgets/clickable_avatar.dart';
+import 'package:auragains/features/user_profile/views/user_profile_view.dart';
 
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key});
@@ -163,25 +165,21 @@ class PostDetailView extends StatelessWidget {
                         Row(
                           children: [
 
-                            CircleAvatar(
+                            ClickableAvatar(
                               radius: 18,
-
-                              backgroundImage:
-                                  post.creatorProfileUrl != null
-                                      ? NetworkImage(
-                                          post.creatorProfileUrl!,
-                                        )
-                                      : null,
-
-                              backgroundColor:Colors.grey.shade300,
-
-                              child:
-                                  post.creatorProfileUrl == null
-                                      ? Icon(
-                                          Icons.person,
-                                          color: Colors.grey.shade700,
-                                        )
-                                      : null,
+                              profilePicUrl: post.creatorProfileUrl,
+                              username: post.creatorUsername,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => UserProfileView(
+                                      targetUserId: post.creatorId,
+                                      currentUserId: vm.currentUserId,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
 
                             const SizedBox(width: 12),
