@@ -18,6 +18,9 @@ class PostDetailModel {
   final List<PostMediaModel> mediaList;
   final List<TagModel> tagList;
 
+  final int totalComment;
+  final int totalSave;
+
   final bool isLiked;
   final bool isSaved;
 
@@ -35,6 +38,8 @@ class PostDetailModel {
     required this.creatorProfileUrl,
     required this.mediaList,
     required this.tagList,
+    required this.totalComment,
+    required this.totalSave,
     required this.isLiked,
     required this.isSaved,
   });
@@ -61,6 +66,9 @@ class PostDetailModel {
       tagList: (json['post_tag'] as List<dynamic>? ?? [])
           .map((e) => TagModel.fromJson(e['tag']))
           .toList(),
+
+      totalComment: json['total_comment'] ?? 0,
+      totalSave: json['total_save'] ?? 0,
 
       isLiked: json['is_liked'] ?? false,
       isSaved: json['is_saved'] ?? false,

@@ -1,7 +1,11 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 import 'package:auragains/features/post_feed/models/post_preview_model.dart';
+import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
+import 'package:auragains/features/post_feed/views/pages/post_detail/post_detail_view.dart';
 
 class PostCard extends StatelessWidget {
   final PostPreviewModel post;
@@ -118,9 +122,8 @@ class PostCard extends StatelessWidget {
         post.title,
 
         style: const TextStyle(
-          color: Colors.white,
+          color: Color.fromARGB(255, 226, 226, 226),
           fontSize: 14,
-          fontWeight: FontWeight.bold,
           height: 1.3,
         ),
 
@@ -138,233 +141,262 @@ class PostCard extends StatelessWidget {
   // ===================================
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(8),
-
-      decoration: BoxDecoration(
-        color: const Color.fromARGB(223, 0, 0, 0),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-            color: const Color.fromARGB(255, 95, 95, 95).withValues(alpha: 0.25),
-          ),
-        ],
-      ),
+        splashColor: Colors.cyanAccent,
 
-      clipBehavior: Clip.antiAlias, // clip the content to prevent it from overflowing the border radius
+        onTap: () { // when user tap on the post card, navigate to the post detail view and pass the post id
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChangeNotifierProvider(
+                create: (context) {
 
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+                  final authVm = context.read<AuthViewModel>();
 
-        children: [
+                  return PostDetailViewModel(
+                    postId: post.postId,
+                    currentUserId: authVm.currentUser!.id
+                  )..loadPost();
+                },
 
-          // ===================================
-          // MEDIA AREA
-          // ===================================
-          Stack( // use stack to show the media preview, user info at top and like count and time ago info at bottom of the media preview
-            children: [
+                child: const PostDetailView()
+              )
+            )
+          );
+        },
 
-              // IMAGE / TEXT FALLBACK
-              AspectRatio(
-                aspectRatio: 0.82,
+        child: Container(
+          margin: const EdgeInsets.all(8),
 
-                child: !shouldUseTextFallback  // if post has valid media or thumbnail picture, show it as preview
-                    ? Image.network(
-                        previewImage,
-
-                        fit: BoxFit.cover,
-
-                        // IMAGE ERROR FALLBACK (if the image url is invalid or failed to load, then we will show the text fallback instead)
-                        errorBuilder: (
-                          context,
-                          error,
-                          stackTrace,
-                        ) {
-                          return buildTextFallback();
-                        },
-                      )
-
-                    // ===================================
-                    // TEXT FALLBACK (Text as preview thumnail for videos or posts without valid media(text post))
-                    // ===================================
-                    : buildTextFallback()
-              ),
-
-              // ===================================
-              // TOP DARK OVERLAY 
-              // ===================================
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.center,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.5),
-                        Colors.transparent,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // ===================================
-              // USER INFO 
-              // ===================================
-              Positioned(
-                top: 12,
-                left: 12,
-                right: 12,
-
-                child: Row(
-                  children: [
-
-                    CircleAvatar(
-                      radius: 15,
-
-                      backgroundImage:
-                          post.creatorProfileUrl != null // use profile picture as avatar if the url is valid, otherwise show default avatar with person icon
-                              ? NetworkImage(
-                                  post.creatorProfileUrl!,
-                                )
-                              : null,
-
-                      backgroundColor:Colors.grey.shade300,
-
-                      child: post.creatorProfileUrl == null // if the profile url is null, show person icon in the avatar, otherwise show the profile picture, this is to prevent showing empty avatar when the profile url is invalid
-                          ? Icon(
-                              Icons.person,
-                              size: 18,
-                              color: Colors.grey.shade700,
-                            )
-                          : null,
-                    ),
-
-                    const SizedBox(width: 10), // spacing between avatar and username
-
-                    Expanded(
-                      child: Text(
-                        post.creatorUsername,
-
-                        maxLines: 1,
-
-                        overflow: TextOverflow.ellipsis,
-
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    // VIDEO ICON at top right corner if the post is a video for first media
-                    if (post.firstMediaType == 'video')
-                      Container(
-                        padding: const EdgeInsets.all(5),
-
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-
-                          shape: BoxShape.circle,
-                        ),
-
-                        child: const Icon(
-                          Icons.play_arrow_rounded, // video icon
-
-                          color:
-                              Colors.white,
-
-                          size: 14,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // ===================================
-              // BOTTOM INFO (like count and time ago)
-              // ===================================
-              Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
-
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                  children: [
-
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.favorite_border, // Like icon
-                          color:Colors.white,
-                          size: 15,
-                        ),
-
-                        const SizedBox(width: 5),
-
-                        Text(
-                          '${post.likeCount}', // total like number
-
-                          style: const TextStyle(
-                            color: Colors.white,
-
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    Text(
-                      timeAgo, // Time ago text
-
-                      style: const TextStyle(
-                        color:Colors.white70,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
+          decoration: BoxDecoration(
+            color: const Color.fromARGB(153, 0, 0, 0),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [
+              BoxShadow(
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+                color: const Color.fromARGB(255, 95, 95, 95).withValues(alpha: 0.25),
               ),
             ],
           ),
 
-          // ===================================
-          // TITLE
-          // ===================================
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 6,
-            ),
+          clipBehavior: Clip.antiAlias, // clip the content to prevent it from overflowing the border radius
 
-            child: Center(
-              child: Text(
-                post.title,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
 
-                textAlign:
-                    TextAlign.center,
+            children: [
 
-                maxLines: 2,
+              // ===================================
+              // MEDIA AREA
+              // ===================================
+              Stack( // use stack to show the media preview, user info at top and like count and time ago info at bottom of the media preview
+                children: [
 
-                overflow: TextOverflow.ellipsis,
+                  // IMAGE / TEXT FALLBACK
+                  AspectRatio(
+                    aspectRatio: 0.82,
 
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  height: 1.4,
-                  color: Color.fromARGB(255, 139, 139, 139),
+                    child: !shouldUseTextFallback  // if post has valid media or thumbnail picture, show it as preview
+                        ? Image.network(
+                            previewImage,
+
+                            fit: BoxFit.cover,
+
+                            // IMAGE ERROR FALLBACK (if the image url is invalid or failed to load, then we will show the text fallback instead)
+                            errorBuilder: (
+                              context,
+                              error,
+                              stackTrace,
+                            ) {
+                              return buildTextFallback();
+                            },
+                          )
+
+                        // ===================================
+                        // TEXT FALLBACK (Text as preview thumnail for videos or posts without valid media(text post))
+                        // ===================================
+                        : buildTextFallback()
+                  ),
+
+                  // ===================================
+                  // TOP DARK OVERLAY 
+                  // ===================================
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.center,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.5),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ===================================
+                  // USER INFO 
+                  // ===================================
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    right: 12,
+
+                    child: Row(
+                      children: [
+
+                        CircleAvatar(
+                          radius: 15,
+
+                          backgroundImage:
+                              post.creatorProfileUrl != null // use profile picture as avatar if the url is valid, otherwise show default avatar with person icon
+                                  ? NetworkImage(
+                                      post.creatorProfileUrl!,
+                                    )
+                                  : null,
+
+                          backgroundColor:Colors.grey.shade300,
+
+                          child: post.creatorProfileUrl == null // if the profile url is null, show person icon in the avatar, otherwise show the profile picture, this is to prevent showing empty avatar when the profile url is invalid
+                              ? Icon(
+                                  Icons.person,
+                                  size: 18,
+                                  color: Colors.grey.shade700,
+                                )
+                              : null,
+                        ),
+
+                        const SizedBox(width: 10), // spacing between avatar and username
+
+                        Expanded(
+                          child: Text(
+                            post.creatorUsername,
+
+                            maxLines: 1,
+
+                            overflow: TextOverflow.ellipsis,
+
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        // VIDEO ICON at top right corner if the post is a video for first media
+                        if (post.firstMediaType == 'video')
+                          Container(
+                            padding: const EdgeInsets.all(5),
+
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.25),
+
+                              shape: BoxShape.circle,
+                            ),
+
+                            child: const Icon(
+                              Icons.play_arrow_rounded, // video icon
+
+                              color:
+                                  Colors.white,
+
+                              size: 14,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+
+                  // ===================================
+                  // BOTTOM INFO (like count and time ago)
+                  // ===================================
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    right: 12,
+
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                      children: [
+
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.favorite_border, // Like icon
+                              color:Colors.white,
+                              size: 15,
+                            ),
+
+                            const SizedBox(width: 5),
+
+                            Text(
+                              '${post.likeCount}', // total like number
+
+                              style: const TextStyle(
+                                color: Colors.white,
+
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        Text(
+                          timeAgo, // Time ago text
+
+                          style: const TextStyle(
+                            color:Colors.white70,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // ===================================
+              // TITLE
+              // ===================================
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
+
+                child: Center(
+                  child: Text(
+                    post.title,
+
+                    textAlign:
+                        TextAlign.center,
+
+                    maxLines: 2,
+
+                    overflow: TextOverflow.ellipsis,
+
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                      color: Colors.white
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        )
+      )
     );
   }
 }
