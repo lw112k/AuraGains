@@ -41,7 +41,7 @@ class LeaderboardView extends StatelessWidget {
           ],
         ),
 
-        // 💡 THE GLASS STICKY CARD
+        // THE GLASS STICKY CARD
         if (myData != null)
           Positioned(
             bottom: 0,
@@ -84,6 +84,7 @@ class LeaderboardView extends StatelessWidget {
       children: [
         _avatarWithGlow(
           user['profile_pic_url'],
+          user['username'],
           medalColor,
           rank == 1 ? 32 : 26,
         ),
@@ -110,7 +111,6 @@ class LeaderboardView extends StatelessWidget {
           height: height,
           margin: const EdgeInsets.symmetric(horizontal: 2),
           decoration: BoxDecoration(
-            // 💡 1. Replaced the gradient with a solid color
             color: medalColor,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
@@ -156,10 +156,12 @@ class LeaderboardView extends StatelessWidget {
               ]
             : null,
       ),
+      //
       child: Row(
         children: [
           _avatarWithGlow(
             data['profile_pic_url'],
+            data['username'],
             isMe ? Colors.cyanAccent : Colors.grey,
             20,
             badge: rank,
@@ -192,44 +194,46 @@ class LeaderboardView extends StatelessWidget {
   // --- HELPER: AVATAR WITH NEON GLOW ---
   Widget _avatarWithGlow(
     String? url,
+    String? username,
     Color color,
     double radius, {
     int? badge,
   }) {
+    // 💡 Safely calculate the initial
+    final initial = (username != null && username.isNotEmpty)
+        ? username[0].toUpperCase()
+        : '?';
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.4),
-                blurRadius: 12,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: CircleAvatar(
-            radius: radius,
-            backgroundColor: const Color(0xFF1E1E1E),
-            backgroundImage: url != null ? NetworkImage(url) : null,
-            child: url == null
-                ? Icon(Icons.person, color: color, size: radius)
-                : null,
-          ),
+        CircleAvatar(
+          radius: radius,
+          backgroundColor: Colors.blueAccent,
+          backgroundImage: (url != null && url.isNotEmpty)
+              ? NetworkImage(url)
+              : null,
+          child: (url == null || url.isEmpty)
+              ? Text(
+                  initial,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: radius * 0.8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
+              : null,
         ),
         if (badge != null)
           Positioned(
             top: -8,
-            left: -8, // Shifted further out
+            left: -8,
             child: Container(
-              padding: const EdgeInsets.all(6), // Increased padding
+              padding: const EdgeInsets.all(6),
               decoration: const BoxDecoration(
                 color: Colors.black,
                 shape: BoxShape.circle,
               ),
-              // Increased font size from 10 to 13
               child: Text(
                 '$badge',
                 style: const TextStyle(
