@@ -24,7 +24,6 @@ abstract final class AppRoutes {
   static const String userHome = '/home';
   static const String adminPanel = '/admin';
   static const String adminUsers = '/admin/users';
-  static const String adminReports = '/admin/reports';
 
   static const String _adminContentBase = '/admin/content';
 
