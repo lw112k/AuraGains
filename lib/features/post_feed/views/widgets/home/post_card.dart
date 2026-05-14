@@ -353,7 +353,7 @@ class PostCard extends StatelessWidget {
                           timeAgo, // Time ago text
 
                           style: const TextStyle(
-                            color:Colors.white70,
+                            color:Colors.white,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
