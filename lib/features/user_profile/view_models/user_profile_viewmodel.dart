@@ -31,8 +31,14 @@ class UserProfileViewModel extends ChangeNotifier {
   UserProfileModel? _profile;
   BodyStatsModel? _bodyStats;
   String? _expertStatus;
+
   bool _isFollowing = false;
   bool _isFollowLoading = false;
+
+  // Post Data State
+  List<Map<String, dynamic>> _userPosts = [];
+  List<Map<String, dynamic>> _savedPosts = [];
+  bool _isLoadingPosts = true;
 
   bool get isLoading => _isLoading;
   bool get isMe => _isMe;
@@ -51,17 +57,25 @@ class UserProfileViewModel extends ChangeNotifier {
   List<LevelModel> get availableLevels => _availableLevels;
   LevelModel? get currentLevel => _currentLevel;
 
+  List<Map<String, dynamic>> get userPosts => _userPosts;
+  List<Map<String, dynamic>> get savedPosts => _savedPosts;
+  bool get isLoadingPosts => _isLoadingPosts;
+
   Future<void> initializeProfile(String sessionUserId) async {
     _isLoading = true;
     currentUserId = sessionUserId;
     _isMe = currentUserId == targetUserId;
+
+    if (!_isMe) {
+      await _checkFollowStatus();
+    }
 
     await Future.wait(<Future<void>>[
       _fetchLevels(),
       _fetchProfileAndExpertStatus(),
       _fetchBodyStats(),
       _fetchNetworkStats(),
-      if (!_isMe) _checkFollowStatus(),
+      _fetchPostsData(),
     ]);
 
     _isLoading = false;
@@ -70,6 +84,7 @@ class UserProfileViewModel extends ChangeNotifier {
 
   Future<void> _fetchLevels() async {
     _availableLevels = await _repository.getAllLevels();
+
     final userCurrentLevelId = await _repository.getUserCurrentLevelId(
       targetUserId,
     );
@@ -86,6 +101,7 @@ class UserProfileViewModel extends ChangeNotifier {
       targetUserId,
       selectedLevel.levelId,
     );
+
     if (success) {
       _currentLevel = selectedLevel;
       notifyListeners();
@@ -99,7 +115,7 @@ class UserProfileViewModel extends ChangeNotifier {
       imageQuality: 70,
     );
 
-    if (pickedFile != null && targetUserId != null) {
+    if (pickedFile != null) {
       _isUploadingPic = true;
       notifyListeners();
 
@@ -108,7 +124,7 @@ class UserProfileViewModel extends ChangeNotifier {
         final String fileExtension = pickedFile.path.split('.').last;
 
         final newUrl = await _repository.uploadProfilePicture(
-          targetUserId!,
+          targetUserId,
           imageBytes,
           fileExtension,
         );
@@ -165,6 +181,7 @@ class UserProfileViewModel extends ChangeNotifier {
 
   Future<void> _fetchProfileAndExpertStatus() async {
     _profile = await _repository.getUserProfile(targetUserId);
+
     if (_profile?.systemRole == 'expert') {
       _expertStatus = 'approved';
     } else {
@@ -197,8 +214,6 @@ class UserProfileViewModel extends ChangeNotifier {
       isCurrentlyFollowing: _isFollowing,
     );
 
-    // Tell the ViewModel to recount the followers/following
-    // immediately after the database updates
     await _fetchNetworkStats();
 
     _isFollowLoading = false;
@@ -238,5 +253,28 @@ class UserProfileViewModel extends ChangeNotifier {
     final stats = await _repository.getNetworkStats(targetUserId);
     _followerCount = stats['followers'] ?? 0;
     _followingCount = stats['following'] ?? 0;
+  }
+
+  Future<void> _fetchPostsData() async {
+    _isLoadingPosts = true;
+    notifyListeners();
+
+    try {
+      // 💡 Pass the identity and follow status to the repository
+      _userPosts = await _repository.getUserPosts(
+        targetUserId: targetUserId,
+        isMe: _isMe,
+        isFollowing: _isFollowing,
+      );
+
+      if (_isMe) {
+        _savedPosts = await _repository.getSavedPosts(currentUserId);
+      }
+    } catch (e) {
+      debugPrint("Error fetching posts data: $e");
+    } finally {
+      _isLoadingPosts = false;
+      notifyListeners();
+    }
   }
 }

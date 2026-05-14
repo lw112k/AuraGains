@@ -82,8 +82,9 @@ class UserProfileView extends StatelessWidget {
                 },
                 body: TabBarView(
                   children: <Widget>[
-                    _buildPostGrid(),
-                    if (viewModel.isMe) _buildPostGrid(),
+                    _buildPostGrid(viewModel, viewModel.userPosts),
+                    if (viewModel.isMe)
+                      _buildPostGrid(viewModel, viewModel.savedPosts),
                   ],
                 ),
               ),
@@ -94,6 +95,7 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
+  // --- Identity Zone ---
   Widget _buildIdentityZone(
     BuildContext context,
     UserProfileViewModel viewModel,
@@ -191,7 +193,8 @@ class UserProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _buildVerificationBadge(viewModel.expertStatus),
+
+        _buildVerificationBadge(context, viewModel),
 
         const SizedBox(height: 16),
         Row(
@@ -223,13 +226,20 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildVerificationBadge(String? status) {
+  // --- Verification Badge (Pill Shape) ---
+  Widget _buildVerificationBadge(
+    BuildContext context,
+    UserProfileViewModel viewModel,
+  ) {
+    final status = viewModel.expertStatus;
+    final isMe = viewModel.isMe;
+
     if (status == 'approved') {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.cyanAccent.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(50),
           border: Border.all(color: Colors.cyanAccent),
         ),
         child: const Row(
@@ -238,38 +248,91 @@ class UserProfileView extends StatelessWidget {
             Icon(Icons.verified, color: Colors.cyanAccent, size: 16),
             SizedBox(width: 4),
             Text(
-              'Verified Expert',
+              'Verified Trainer',
               style: TextStyle(
                 color: Colors.cyanAccent,
                 fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
             ),
           ],
         ),
       );
-    } else if (status == 'pending') {
-      return const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(Icons.access_time, color: Colors.grey, size: 16),
-          SizedBox(width: 4),
-          Text('Verification Pending...', style: TextStyle(color: Colors.grey)),
-        ],
-      );
+    }
+
+    if (isMe) {
+      if (status == 'pending') {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.grey.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.access_time, color: Colors.grey, size: 16),
+              SizedBox(width: 4),
+              Text(
+                'Verification Pending',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return GestureDetector(
+          onTap: () {
+            // Navigator.of(context).push(
+            //   MaterialPageRoute(
+            //     builder: (_) => TrainerApplicationScreen(currentUserId: viewModel.currentUserId),
+            //   ),
+            // );
+            print("Navigate to Application Screen");
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: Colors.cyanAccent),
+            ),
+            child: const Text(
+              'Verify Trainer',
+              style: TextStyle(
+                color: Colors.cyanAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        );
+      }
     } else {
-      return GestureDetector(
-        onTap: () {},
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(50),
+        ),
         child: const Text(
-          'Verify as Expert?',
+          'AuraGains User',
           style: TextStyle(
-            color: Colors.cyanAccent,
-            decoration: TextDecoration.underline,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
         ),
       );
     }
   }
 
+  // --- Unified Dashboard ---
   Widget _buildDashboardRow(
     BuildContext context,
     UserProfileViewModel viewModel,
@@ -459,6 +522,7 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
+  // --- Action Zone ---
   Widget _buildActionZone(
     BuildContext context,
     UserProfileViewModel viewModel,
@@ -542,7 +606,37 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildPostGrid() {
+  // --- Post Grid ---
+  Widget _buildPostGrid(
+    UserProfileViewModel viewModel,
+    List<Map<String, dynamic>> postsList,
+  ) {
+    if (viewModel.isLoadingPosts) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.cyanAccent),
+      );
+    }
+
+    if (postsList.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.grid_off, color: Colors.grey, size: 48),
+            SizedBox(height: 16),
+            Text(
+              'No Posts Found',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GridView.builder(
       padding: const EdgeInsets.all(2),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -550,9 +644,42 @@ class UserProfileView extends StatelessWidget {
         crossAxisSpacing: 2,
         mainAxisSpacing: 2,
       ),
-      itemCount: 15,
+      itemCount: postsList.length,
       itemBuilder: (context, index) {
-        return Container(color: const Color(0xFF1E1E1E));
+        final post = postsList[index];
+        final imageUrl = post['thumbnail_url'] as String?;
+        final postId = post['post_id'].toString();
+
+        return GestureDetector(
+          onTap: () {
+            // 🚀 TEAMMATE HANDOFF POINT
+            debugPrint("Navigating to Post View...");
+            debugPrint("Target User ID: ${viewModel.targetUserId}");
+            debugPrint("Post ID clicked: $postId");
+          },
+          child: Container(
+            color: const Color(0xFF1E1E1E),
+            child: imageUrl != null && imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.cyanAccent,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : const Icon(Icons.image_not_supported, color: Colors.grey),
+          ),
+        );
       },
     );
   }
