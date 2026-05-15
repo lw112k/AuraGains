@@ -136,7 +136,7 @@ class _AdminUsersViewState extends State<AdminUsersView> {
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                         itemCount: vm.filteredUsers.length,
-                        separatorBuilder: (_, __) =>
+                        separatorBuilder: (_, _) =>
                           Divider(color: AppTheme.border, height: 1),
                         itemBuilder: (ctx, i) {
                           final user = vm.filteredUsers[i];
@@ -255,7 +255,7 @@ class _UserTile extends StatelessWidget {
                     border: Border.all(color: roleColor.withOpacity(0.25)),
                   ),
                   child: Text(
-                    (user.systemRole).toUpperCase(),
+                    context.read<AdminViewModel>().labelForSystemRole(user.systemRole).toUpperCase(),
                     style: TextStyle(color: roleColor, fontWeight: FontWeight.w700, fontSize: 11),
                   ),
                 ),
@@ -264,10 +264,13 @@ class _UserTile extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Email (primary) and email again (replaced Joined date with email)
+            // Email and joined date
             Text(user.email, style: TextStyle(color: Colors.white, fontSize: 13)),
             const SizedBox(height: 4),
-            Text(user.email, style: TextStyle(color: Colors.white, fontSize: 12)),
+            Text(
+              'Joined: ${_formatDate(user.registerDate)}',
+              style: TextStyle(color: AppTheme.muted, fontSize: 12),
+            ),
 
             const SizedBox(height: 10),
 
@@ -342,52 +345,6 @@ class _RoleFilterBtn extends StatelessWidget {
   }
 }
 
-// ─── Role filter chip ─────────────────────────────────────────────────────────
-class _RoleFilterChip extends StatelessWidget {
-  const _RoleFilterChip({required this.current, required this.onChanged});
-
-  final String? current;
-  final void Function(String?) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String?>(
-      color: AppTheme.card,
-      onSelected: onChanged,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: current != null ? AppTheme.accent : AppTheme.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.filter_list_rounded,
-                size: 16, color: current != null ? AppTheme.accent : AppTheme.muted),
-            const SizedBox(width: 4),
-            Text(
-              current?.toUpperCase() ?? 'ALL',
-              style: TextStyle(
-                  color: current != null ? AppTheme.accent : AppTheme.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: null, child: Text('All roles')),
-        const PopupMenuItem(value: 'user', child: Text('User')),
-        const PopupMenuItem(value: 'expert', child: Text('Expert')),
-        const PopupMenuItem(value: 'admin', child: Text('Admin')),
-      ],
-    );
-  }
-}
-
 // ─── Small avatar ─────────────────────────────────────────────────────────────
 class _SmallAvatar extends StatelessWidget {
   const _SmallAvatar({required this.url, required this.name});
@@ -402,7 +359,7 @@ class _SmallAvatar extends StatelessWidget {
         radius: 20,
         backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
       );
     }
     return CircleAvatar(

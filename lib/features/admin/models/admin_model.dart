@@ -91,7 +91,8 @@ class AdminReportModel {
 
   factory AdminReportModel.fromJson(Map<String, dynamic> json) {
     return AdminReportModel(
-      reportId: _toInt(json['report_id']) ?? 0,
+      reportId: _toInt(json['report_id']) ??
+          (throw ArgumentError('Missing required field: report_id')),
       reportBy: _toStr(json['report_by']),
       targetType: json['target_type'] as String?,
       targetId: _toInt(json['target_id']),
@@ -110,6 +111,17 @@ class AdminReportModel {
               : null,
     );
   }
+
+  AdminReportModel copyWith({String? status}) => AdminReportModel(
+        reportId: reportId,
+        reportBy: reportBy,
+        targetType: targetType,
+        targetId: targetId,
+        reason: reason,
+        createDate: createDate,
+        status: status ?? this.status,
+        postId: postId,
+      );
 }
 
 class AdminPostModel {
@@ -135,7 +147,8 @@ class AdminPostModel {
 
   factory AdminPostModel.fromJson(Map<String, dynamic> json) {
     return AdminPostModel(
-      postId: _toInt(json['post_id']) ?? 0,
+      postId: _toInt(json['post_id']) ??
+          (throw ArgumentError('Missing required field: post_id')),
       postBy: _toStr(json['post_by']),
       title: json['title'] as String? ?? '(untitled)',
       description: json['description'] as String?,
@@ -145,6 +158,26 @@ class AdminPostModel {
       createDate: _toDate(json['create_date']),
     );
   }
+
+  AdminPostModel copyWith({
+    String? postBy,
+    String? title,
+    String? description,
+    String? thumbnailUrl,
+    String? postType,
+    int? postLike,
+    DateTime? createDate,
+  }) =>
+      AdminPostModel(
+        postId: postId,
+        postBy: postBy ?? this.postBy,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+        postType: postType ?? this.postType,
+        postLike: postLike ?? this.postLike,
+        createDate: createDate ?? this.createDate,
+      );
 }
 
 class AdminApplicationModel {
@@ -193,6 +226,31 @@ class AdminApplicationModel {
       imageUrls: imageUrls,
     );
   }
+
+  AdminApplicationModel copyWith({
+    String? expertTitle,
+    int? experienceYears,
+    String? experienceDescription,
+    String? applicationStatus,
+    DateTime? createDate,
+    String? username,
+    String? profilePicUrl,
+    String? email,
+    List<String>? imageUrls,
+  }) =>
+      AdminApplicationModel(
+        applicationId: applicationId,
+        userId: userId,
+        expertTitle: expertTitle ?? this.expertTitle,
+        experienceYears: experienceYears ?? this.experienceYears,
+        experienceDescription: experienceDescription ?? this.experienceDescription,
+        applicationStatus: applicationStatus ?? this.applicationStatus,
+        createDate: createDate ?? this.createDate,
+        username: username ?? this.username,
+        profilePicUrl: profilePicUrl ?? this.profilePicUrl,
+        email: email ?? this.email,
+        imageUrls: imageUrls ?? this.imageUrls,
+      );
 }
 
 class AdminDashboardStats {

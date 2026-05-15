@@ -112,7 +112,7 @@ class AdminVerifyView extends StatelessWidget {
                       child: Image.network(
                         url,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           height: 120,
                           color: AppTheme.card,
                           child: Center(
@@ -278,7 +278,7 @@ class _Avatar extends StatelessWidget {
         radius: 28,
         backgroundColor: const Color(0xFF2A2A2A),
         backgroundImage: NetworkImage(url!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
       );
     }
     return CircleAvatar(

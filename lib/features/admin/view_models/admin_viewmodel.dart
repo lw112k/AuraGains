@@ -11,9 +11,12 @@ class AdminViewModel extends ChangeNotifier {
   final AdminRepository _repo = AdminRepository();
 
   // ─── Loading / Error ─────────────────────────────────────────────────
-  bool isLoading = false;
-  bool isActionLoading = false;
+  bool _isLoading = false;
+  bool _isActionLoading = false;
   String? errorMessage;
+
+  bool get isLoading => _isLoading;
+  bool get isActionLoading => _isActionLoading;
 
   // ─── Dashboard ───────────────────────────────────────────────────────
   AdminDashboardStats stats = const AdminDashboardStats.empty();
@@ -41,7 +44,14 @@ class AdminViewModel extends ChangeNotifier {
     'administrator'
   };
 
-  String _labelForSystemRole(String? sysRole) {
+  // Deterministic label→DB-token map; prevents bad inference from _allUsers.
+  static const Map<String, String> _roleLabelToDbToken = {
+    'user': 'gym_member',
+    'expert': 'expert',
+    'admin': 'admin',
+  };
+
+  String labelForSystemRole(String? sysRole) {
     final r = (sysRole ?? '').toLowerCase();
     if (_userTokens.contains(r)) return 'User';
     if (_expertTokens.contains(r)) return 'Expert';
@@ -50,53 +60,10 @@ class AdminViewModel extends ChangeNotifier {
     return r[0].toUpperCase() + r.substring(1);
   }
 
+  String _labelForSystemRole(String? sysRole) => labelForSystemRole(sysRole);
+
   String _dbTokenForLabel(String label) {
-    final l = label.toLowerCase();
-    // Prefer an existing DB token seen in _allUsers for this role, otherwise fall back to a sensible default.
-    if (l == 'user') {
-      final match = _allUsers.firstWhere(
-          (u) => _userTokens.contains((u.systemRole ?? '').toLowerCase()),
-          orElse: () => AdminUserModel(
-                userId: '',
-                username: '',
-                email: '',
-                systemRole: '',
-                isBanned: false,
-              ));
-      return (match.systemRole != null && match.systemRole!.isNotEmpty)
-          ? match.systemRole!
-          : 'gym_member';
-    }
-    if (l == 'expert') {
-      final match = _allUsers.firstWhere(
-          (u) => _expertTokens.contains((u.systemRole ?? '').toLowerCase()),
-          orElse: () => AdminUserModel(
-                userId: '',
-                username: '',
-                email: '',
-                systemRole: '',
-                isBanned: false,
-              ));
-      return (match.systemRole != null && match.systemRole!.isNotEmpty)
-          ? match.systemRole!
-          : 'expert';
-    }
-    if (l == 'admin') {
-      final match = _allUsers.firstWhere(
-          (u) => _adminTokens.contains((u.systemRole ?? '').toLowerCase()),
-          orElse: () => AdminUserModel(
-                userId: '',
-                username: '',
-                email: '',
-                systemRole: '',
-                isBanned: false,
-              ));
-      return (match.systemRole != null && match.systemRole!.isNotEmpty)
-          ? match.systemRole!
-          : 'admin';
-    }
-    // Unknown labels: pass through
-    return label;
+    return _roleLabelToDbToken[label.toLowerCase()] ?? label;
   }
 
   List<AdminUserModel> get filteredUsers {
@@ -210,15 +177,18 @@ class AdminViewModel extends ChangeNotifier {
     try {
       detailPost = await _repo.fetchPost(postId);
       detailMediaUrls = await _repo.fetchPostMediaUrls(postId);
-      if (detailPost?.postBy != null) {
-        detailPostAuthor = await _repo.fetchUser(detailPost!.postBy!.toString());
+      if (detailPost?.postBy != null && detailPost!.postBy!.isNotEmpty) {
+        detailPostAuthor = await _repo.fetchUser(detailPost!.postBy!);
       }
       if (reportId != null) {
         final reportMatch =
             _allReports.where((r) => r.reportId == reportId).toList();
-        detailReport = reportMatch.isNotEmpty ? reportMatch.first : null;
-        if (detailReport?.reportBy != null) {
-          detailReporter = await _repo.fetchUser(detailReport!.reportBy!.toString());
+        detailReport = reportMatch.isNotEmpty
+            ? reportMatch.first
+            : await _repo.fetchReportById(reportId);
+        if (detailReport?.reportBy != null &&
+            detailReport!.reportBy!.isNotEmpty) {
+          detailReporter = await _repo.fetchUser(detailReport!.reportBy!);
         }
       }
       errorMessage = null;
@@ -252,17 +222,15 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectApplication(int index) {
-    if (index >= 0 && index < _allApplications.length) {
-      detailApplication = _allApplications[index];
-    }
+  void selectApplication(AdminApplicationModel app) {
+    detailApplication = app;
     notifyListeners();
   }
 
   // ─── Actions ─────────────────────────────────────────────────────────
 
   Future<bool> banUser(String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.banUser(userId);
@@ -275,13 +243,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to ban user: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> unbanUser(String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.unbanUser(userId);
@@ -294,13 +262,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to unban user: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> setUserRole(String userId, String role) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
         // Normalize UI label to DB token before persisting.
@@ -315,13 +283,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to update role: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> approveReport(int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.updateReportStatus(reportId, 'approved');
@@ -331,13 +299,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to approve report: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> dismissReport(int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.updateReportStatus(reportId, 'dismissed');
@@ -347,13 +315,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to dismiss report: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> deletePost(int postId, int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.deletePost(postId);
@@ -365,13 +333,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to delete post: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> approveApplication(String applicationId, String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.approveApplication(applicationId, userId);
@@ -381,13 +349,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to approve application: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> rejectApplication(String applicationId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.rejectApplication(applicationId);
@@ -397,7 +365,7 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to reject application: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
@@ -405,73 +373,27 @@ class AdminViewModel extends ChangeNotifier {
   // ─── Private helpers ─────────────────────────────────────────────────
 
   void _setLoading(bool value) {
-    isLoading = value;
+    _isLoading = value;
     notifyListeners();
   }
 
   void _updateReportStatus(int reportId, String status) {
     _allReports = _allReports
-        .map((r) => r.reportId == reportId
-            ? AdminReportModel(
-                reportId: r.reportId,
-                reportBy: r.reportBy,
-                targetType: r.targetType,
-                targetId: r.targetId,
-                reason: r.reason,
-                createDate: r.createDate,
-                status: status,
-                postId: r.postId,
-              )
-            : r)
+        .map((r) => r.reportId == reportId ? r.copyWith(status: status) : r)
         .toList();
     recentReports = recentReports
-        .map((r) => r.reportId == reportId
-            ? AdminReportModel(
-                reportId: r.reportId,
-                reportBy: r.reportBy,
-                targetType: r.targetType,
-                targetId: r.targetId,
-                reason: r.reason,
-                createDate: r.createDate,
-                status: status,
-                postId: r.postId,
-              )
-            : r)
+        .map((r) => r.reportId == reportId ? r.copyWith(status: status) : r)
         .toList();
   }
 
   void _updateAppStatus(String appId, String status) {
     _allApplications = _allApplications
         .map((a) => a.applicationId == appId
-            ? AdminApplicationModel(
-                applicationId: a.applicationId,
-                userId: a.userId,
-                expertTitle: a.expertTitle,
-                experienceYears: a.experienceYears,
-                experienceDescription: a.experienceDescription,
-                applicationStatus: status,
-                createDate: a.createDate,
-                username: a.username,
-                profilePicUrl: a.profilePicUrl,
-                email: a.email,
-                imageUrls: a.imageUrls,
-              )
+            ? a.copyWith(applicationStatus: status)
             : a)
         .toList();
     if (detailApplication?.applicationId == appId) {
-      detailApplication = AdminApplicationModel(
-        applicationId: detailApplication!.applicationId,
-        userId: detailApplication!.userId,
-        expertTitle: detailApplication!.expertTitle,
-        experienceYears: detailApplication!.experienceYears,
-        experienceDescription: detailApplication!.experienceDescription,
-        applicationStatus: status,
-        createDate: detailApplication!.createDate,
-        username: detailApplication!.username,
-        profilePicUrl: detailApplication!.profilePicUrl,
-        email: detailApplication!.email,
-        imageUrls: detailApplication!.imageUrls,
-      );
+      detailApplication = detailApplication!.copyWith(applicationStatus: status);
     }
   }
 

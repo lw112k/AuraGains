@@ -195,7 +195,7 @@ class _Avatar extends StatelessWidget {
         radius: 22,
         backgroundColor: AppTheme.border,
         backgroundImage: NetworkImage(url!),
-        onBackgroundImageError: (_, __) {},
+        onBackgroundImageError: (_, _) {},
       );
     }
     return CircleAvatar(
