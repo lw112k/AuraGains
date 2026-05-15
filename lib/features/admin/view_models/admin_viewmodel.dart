@@ -288,12 +288,22 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  /// Approve report → delete the flagged post + all reports for it.
   Future<bool> approveReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.updateReportStatus(reportId, 'approved');
-      _updateReportStatus(reportId, 'approved');
+      // Find the postId from local state
+      final postId = _findPostIdForReport(reportId);
+      if (postId != null) {
+        await _repo.deletePost(postId);
+        await _repo.deleteReportsByPostId(postId);
+        _removeReportsByPostId(postId);
+      } else {
+        // Report has no post reference — just delete the report
+        await _repo.deleteReportById(reportId);
+        _removeReportById(reportId);
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to approve report: $e';
@@ -304,12 +314,13 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  /// Dismiss report → delete just that one report.
   Future<bool> dismissReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.updateReportStatus(reportId, 'dismissed');
-      _updateReportStatus(reportId, 'dismissed');
+      await _repo.deleteReportById(reportId);
+      _removeReportById(reportId);
       return true;
     } catch (e) {
       errorMessage = 'Failed to dismiss report: $e';
@@ -320,13 +331,14 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
+  /// Delete post + all its reports (used by ContentDetailView).
   Future<bool> deletePost(int postId, int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.deletePost(postId);
-      await _repo.updateReportStatus(reportId, 'approved');
-      _updateReportStatus(reportId, 'approved');
+      await _repo.deleteReportsByPostId(postId);
+      _removeReportsByPostId(postId);
       detailPost = null;
       return true;
     } catch (e) {
@@ -372,18 +384,36 @@ class AdminViewModel extends ChangeNotifier {
 
   // ─── Private helpers ─────────────────────────────────────────────────
 
+  /// Find the postId for a report using local state.
+  int? _findPostIdForReport(int reportId) {
+    for (final r in _allReports) {
+      if (r.reportId == reportId) return r.postId;
+    }
+    for (final r in recentReports) {
+      if (r.reportId == reportId) return r.postId;
+    }
+    return null;
+  }
+
+  /// Remove a single report from both local lists.
+  void _removeReportById(int reportId) {
+    _allReports = _allReports.where((r) => r.reportId != reportId).toList();
+    recentReports = recentReports.where((r) => r.reportId != reportId).toList();
+  }
+
+  /// Remove all reports referencing a post from local lists.
+  void _removeReportsByPostId(int postId) {
+    _allReports = _allReports
+        .where((r) => r.postId != postId)
+        .toList();
+    recentReports = recentReports
+        .where((r) => r.postId != postId)
+        .toList();
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
-  }
-
-  void _updateReportStatus(int reportId, String status) {
-    _allReports = _allReports
-        .map((r) => r.reportId == reportId ? r.copyWith(status: status) : r)
-        .toList();
-    recentReports = recentReports
-        .map((r) => r.reportId == reportId ? r.copyWith(status: status) : r)
-        .toList();
   }
 
   void _updateAppStatus(String appId, String status) {

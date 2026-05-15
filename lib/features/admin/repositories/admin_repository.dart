@@ -322,6 +322,23 @@ class AdminRepository {
 
   // ─── Posts / Content ─────────────────────────────────────────────────
 
+  /// Delete all reports that reference a given post ID.
+  Future<void> deleteReportsByPostId(int postId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('target_type', 'post')
+        .eq('target_id', postId);
+  }
+
+  /// Delete a single report by its ID.
+  Future<void> deleteReportById(int reportId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('report_id', reportId);
+  }
+
   Future<AdminPostModel?> fetchPost(int postId) async {
     final cols = await _ensureTableColumns('post');
     final wanted = [
@@ -468,10 +485,8 @@ class AdminRepository {
           .update({'application_status': 'approved'})
           .eq('expert_application_id', applicationId);
     }
-    final userCols = await _ensureTableColumns('user');
-    if (userCols.contains('system_role')) {
-      await _db.from('user').update({'system_role': 'expert'}).eq('user_id', userId);
-    }
+    // Note: system_role enum (user_role_type_enum) only accepts 'user' and 'admin'.
+    // Expert status is tracked via expert_application.application_status.
   }
 
   Future<void> rejectApplication(String applicationId) async {

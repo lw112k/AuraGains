@@ -172,11 +172,15 @@ class _ReportQueue extends StatelessWidget {
   }
 
   void _viewContent(BuildContext context, int postId, int reportId) {
+    final adminVm = context.read<AdminViewModel>();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => AdminContentDetailView(
-          postId: postId,
-          reportId: reportId,
+        builder: (_) => ChangeNotifierProvider<AdminViewModel>.value(
+          value: adminVm,
+          child: AdminContentDetailView(
+            postId: postId,
+            reportId: reportId,
+          ),
         ),
       ),
     );
