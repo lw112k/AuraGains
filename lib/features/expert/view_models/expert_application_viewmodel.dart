@@ -93,19 +93,8 @@ class TrainerApplicationViewModel extends ChangeNotifier {
       return;
     }
 
-    // Warn/guard for web: uploading binary files from web isn't implemented
-    // in the repository yet. Show a helpful message instead of attempting
-    // to call native file APIs that will fail in a browser environment.
-    if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Uploading from web is not supported yet. Please use the mobile app.',
-          ),
-        ),
-      );
-      return;
-    }
+    // NOTE: Previously web uploads were blocked here. We now support web by
+    // sending XFile bytes to the repository (which uses uploadBinary).
 
     // --- SUBMISSION ---
     _isLoading = true;
@@ -118,7 +107,7 @@ class TrainerApplicationViewModel extends ChangeNotifier {
         title: titleController.text.trim(),
         experienceYear: expYears,
         description: descriptionController.text.trim(),
-        evidenceImages: selectedImages,
+        evidenceImages: kIsWeb ? selectedXFiles : selectedImages,
       );
 
       // If successful, show a message and go back to the profile screen
