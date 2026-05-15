@@ -468,9 +468,9 @@ class AdminRepository {
       final appId = r['expert_application_id']?.toString() ?? '';
       result.add(
         AdminApplicationModel.fromJson(
-          r,
-          imageUrls: imagesByAppId[appId] ?? [],
-          userJson: usersById[userId],
+          row as Map<String, dynamic>,
+          imageUrls: imageUrls,
+          userJson: userRaw,
         ),
       );
     }

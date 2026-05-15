@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
+import '../../expert/views/expert_application_views.dart';
 
 class UserProfileView extends StatelessWidget {
   final String targetUserId;
@@ -308,12 +309,13 @@ class UserProfileView extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(50),
             onTap: () {
-              // Navigator.of(context).push(
-              //   MaterialPageRoute(
-              //     builder: (_) => TrainerApplicationScreen(currentUserId: viewModel.currentUserId),
-              //   ),
-              // );
-              print("Navigate to Application Screen");
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TrainerApplicationScreen(
+                    currentUserId: viewModel.currentUserId,
+                  ),
+                ),
+              );
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -643,7 +645,7 @@ class UserProfileView extends StatelessWidget {
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2A2A2A), 
+          backgroundColor: const Color(0xFF2A2A2A),
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(

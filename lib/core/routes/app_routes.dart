@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../features/admin/views/admin_view.dart';
 import '../../features/admin/views/admin_content_detail_view.dart';
@@ -8,7 +9,6 @@ import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../core/widgets/user_homepage_frame.dart';
 import '../../core/widgets/splash_screen.dart';
-
 
 // ─────────────────────────────────────────────────────────
 // ROUTE PATH CONSTANTS
@@ -76,13 +76,13 @@ abstract final class AppRouter {
         // Splash / entry point while session is being restored.
         GoRoute(
           path: AppRoutes.root,
-          builder: (_, __) => const SplashScreen(),
+          builder: (_, _) => const SplashScreen(),
         ),
 
         // Unauthenticated entry point.
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, __) => const LoginView(),
+          builder: (_, _) => const LoginView(),
         ),
 
         // Standard user home.
@@ -109,6 +109,15 @@ abstract final class AppRouter {
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: '/apply-expert',
+          builder: (context, state) {
+            // Grab the currently logged-in user's ID directly from Supabase
+            final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+            
+            return TrainerApplicationScreen(currentUserId: currentUserId);
+          },
         ),
       ],
     );
