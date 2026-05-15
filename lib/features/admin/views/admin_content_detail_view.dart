@@ -49,8 +49,26 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                 child: CircularProgressIndicator(color: AppTheme.accent));
           }
           if (vm.detailPost == null) {
+            if (vm.errorMessage != null) {
+              return Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(vm.errorMessage!,
+                        style: const TextStyle(color: Colors.redAccent)),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () =>
+                          vm.loadContentDetail(widget.postId, widget.reportId),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
             return Center(
-              child: Text('Post not found.', style: TextStyle(color: AppTheme.muted)),
+              child: Text('Post not found.',
+                  style: TextStyle(color: AppTheme.muted)),
             );
           }
 
@@ -251,20 +269,9 @@ class _ActionButtons extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
-          onPressed: () => _onApproveReport(context, vm),
+          onPressed: () => _onApproveAndDelete(context, vm),
           icon: const Icon(Icons.check_circle_rounded),
-          label: const Text('Approve Report'),
-            style: FilledButton.styleFrom(
-            backgroundColor: AppTheme.success.withOpacity(0.15),
-            foregroundColor: AppTheme.success,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          onPressed: () => _onDeletePost(context, vm),
-          icon: const Icon(Icons.delete_rounded),
-          label: const Text('Approve Report & Delete Post'),
+          label: const Text('Approve & Delete'),
             style: FilledButton.styleFrom(
             backgroundColor: Colors.redAccent.withOpacity(0.15),
             foregroundColor: Colors.redAccent,
@@ -279,36 +286,22 @@ class _ActionButtons extends StatelessWidget {
             side: BorderSide(color: AppTheme.border),
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
-          child: const Text('Dismiss Report'),
+          child: const Text('Dismiss'),
         ),
       ],
     );
   }
 
-  Future<void> _onApproveReport(
-      BuildContext context, AdminViewModel vm) async {
-    final ok = await vm.approveReport(reportId);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(ok ? 'Report approved.' : (vm.errorMessage ?? 'Error')),
-          backgroundColor: ok ? AppTheme.success : Colors.redAccent,
-        ),
-      );
-      if (ok) Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> _onDeletePost(
+  Future<void> _onApproveAndDelete(
       BuildContext context, AdminViewModel vm) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppTheme.card,
-        title: const Text('Delete Post?',
+        title: const Text('Approve & Delete?',
             style: TextStyle(color: Colors.white)),
         content: Text(
-          'This will permanently delete the post and approve the report.',
+          'This permanently deletes the post and all related reports.',
           style: TextStyle(color: AppTheme.muted),
         ),
         actions: [
@@ -319,7 +312,7 @@ class _ActionButtons extends StatelessWidget {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Delete'),
+            child: const Text('Approve & Delete'),
           ),
         ],
       ),
@@ -331,7 +324,7 @@ class _ActionButtons extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              ok ? 'Post deleted.' : (vm.errorMessage ?? 'Error')),
+              ok ? 'Post and reports deleted.' : (vm.errorMessage ?? 'Error')),
           backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );

@@ -158,6 +158,18 @@ class _AdminUsersViewState extends State<AdminUsersView> {
 
   Future<void> _toggleBan(
       BuildContext context, AdminViewModel vm, AdminUserModel user) async {
+    // Prevent banning another admin
+    if (!user.isBanned && user.systemRole == 'admin') {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot ban another admin.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
     bool ok;
     if (user.isBanned) {
       ok = await vm.unbanUser(user.userId);
@@ -255,7 +267,7 @@ class _UserTile extends StatelessWidget {
                     border: Border.all(color: roleColor.withOpacity(0.25)),
                   ),
                   child: Text(
-                    (user.systemRole).toUpperCase(),
+                    context.read<AdminViewModel>().labelForSystemRole(user.systemRole).toUpperCase(),
                     style: TextStyle(color: roleColor, fontWeight: FontWeight.w700, fontSize: 11),
                   ),
                 ),
@@ -264,40 +276,35 @@ class _UserTile extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Email (primary) and email again (replaced Joined date with email)
-            Text(user.email, style: TextStyle(color: Colors.white, fontSize: 13)),
-            const SizedBox(height: 4),
-            Text(user.email, style: TextStyle(color: Colors.white, fontSize: 12)),
-
-            const SizedBox(height: 10),
-
             // Actions
             Row(
               children: [
                 ElevatedButton.icon(
-                  onPressed: () async {
-                    // Show role dialog
-                    final chosen = await showDialog<String?>(
-                      context: context,
-                      builder: (ctx) => SimpleDialog(
-                        title: const Text('Change Role'),
-                        children: [
-                          SimpleDialogOption(child: const Text('User'), onPressed: () => Navigator.pop(ctx, 'user')),
-                          SimpleDialogOption(child: const Text('Expert'), onPressed: () => Navigator.pop(ctx, 'expert')),
-                          SimpleDialogOption(child: const Text('Admin'), onPressed: () => Navigator.pop(ctx, 'admin')),
-                          SimpleDialogOption(child: const Text('Cancel'), onPressed: () => Navigator.pop(ctx, null)),
-                        ],
-                      ),
-                    );
-                    if (chosen != null) onRoleChange(chosen);
-                  },
+                  onPressed: user.systemRole == 'admin'
+                      ? null
+                      : () async {
+                          // Show role dialog
+                          final chosen = await showDialog<String?>(
+                            context: context,
+                            builder: (ctx) => SimpleDialog(
+                              title: const Text('Change Role'),
+                              children: [
+                                SimpleDialogOption(child: const Text('User'), onPressed: () => Navigator.pop(ctx, 'user')),
+                                SimpleDialogOption(child: const Text('Expert'), onPressed: () => Navigator.pop(ctx, 'expert')),
+                                SimpleDialogOption(child: const Text('Admin'), onPressed: () => Navigator.pop(ctx, 'admin')),
+                                SimpleDialogOption(child: const Text('Cancel'), onPressed: () => Navigator.pop(ctx, null)),
+                              ],
+                            ),
+                          );
+                          if (chosen != null) onRoleChange(chosen);
+                        },
                   icon: Icon(Icons.edit, size: 14, color: Colors.black),
                   label: Text('Change Role', style: TextStyle(color: Colors.black)),
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
-                  onPressed: onBanToggle,
+                  onPressed: (!user.isBanned && user.systemRole == 'admin') ? null : onBanToggle,
                   icon: Icon(user.isBanned ? Icons.lock_open : Icons.block, size: 14, color: user.isBanned ? AppTheme.success : Colors.redAccent),
                   label: Text(user.isBanned ? 'Unban' : 'Ban', style: TextStyle(color: user.isBanned ? AppTheme.success : Colors.redAccent)),
                   style: OutlinedButton.styleFrom(side: BorderSide(color: (user.isBanned ? AppTheme.success : Colors.redAccent).withOpacity(0.25))),
@@ -342,52 +349,6 @@ class _RoleFilterBtn extends StatelessWidget {
   }
 }
 
-// ─── Role filter chip ─────────────────────────────────────────────────────────
-class _RoleFilterChip extends StatelessWidget {
-  const _RoleFilterChip({required this.current, required this.onChanged});
-
-  final String? current;
-  final void Function(String?) onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String?>(
-      color: AppTheme.card,
-      onSelected: onChanged,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-        decoration: BoxDecoration(
-          color: AppTheme.card,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: current != null ? AppTheme.accent : AppTheme.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.filter_list_rounded,
-                size: 16, color: current != null ? AppTheme.accent : AppTheme.muted),
-            const SizedBox(width: 4),
-            Text(
-              current?.toUpperCase() ?? 'ALL',
-              style: TextStyle(
-                  color: current != null ? AppTheme.accent : AppTheme.muted,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: null, child: Text('All roles')),
-        const PopupMenuItem(value: 'user', child: Text('User')),
-        const PopupMenuItem(value: 'expert', child: Text('Expert')),
-        const PopupMenuItem(value: 'admin', child: Text('Admin')),
-      ],
-    );
-  }
-}
-
 // ─── Small avatar ─────────────────────────────────────────────────────────────
 class _SmallAvatar extends StatelessWidget {
   const _SmallAvatar({required this.url, required this.name});
@@ -417,10 +378,3 @@ class _SmallAvatar extends StatelessWidget {
   }
 }
 
-String _formatDate(DateTime? d) {
-  if (d == null) return 'Unknown';
-  final y = d.year.toString();
-  final m = d.month.toString().padLeft(2, '0');
-  final day = d.day.toString().padLeft(2, '0');
-  return '$y-$m-$day';
-}

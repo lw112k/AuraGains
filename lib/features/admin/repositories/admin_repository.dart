@@ -211,12 +211,22 @@ class AdminRepository {
 
     if (status != null && status != 'all' && _reportStatusColumn != null) {
         query = query.eq(_reportStatusColumn!, status);
-        final data = await query.order('create_date', ascending: false);
-        return (data as List).map<AdminReportModel>((e) => AdminReportModel.fromJson(e as Map<String, dynamic>)).toList();
+        final dateCol = _reportColumns!.contains('create_date')
+            ? 'create_date'
+            : (_reportColumns!.contains('created_at') ? 'created_at' : null);
+        final ordered = dateCol != null
+            ? await query.order(dateCol, ascending: false)
+            : await query;
+        return (ordered as List).map<AdminReportModel>((e) => AdminReportModel.fromJson(e as Map<String, dynamic>)).toList();
     }
 
     // Fallback: fetch without server-side status filtering and do a best-effort client-side filter
-    final data = await query.order('create_date', ascending: false);
+    final dateCol = _reportColumns!.contains('create_date')
+        ? 'create_date'
+        : (_reportColumns!.contains('created_at') ? 'created_at' : null);
+    final data = dateCol != null
+        ? await query.order(dateCol, ascending: false)
+        : await query;
     try {
       // ignore: avoid_print
       print('AdminRepository.fetchReports: fields=${fields.join(', ')} dataType=${data.runtimeType} count=${data is List ? data.length : 'unknown'} sample=${data is List && data.isNotEmpty ? data.first : null}');
@@ -251,7 +261,12 @@ class AdminRepository {
     await _ensureReportColumns();
     dynamic query = _db.from('report').select(_reportColumns != null && _reportColumns!.isNotEmpty ? _reportColumns!.join(',') : '*');
     if (_reportStatusColumn != null) query = query.eq(_reportStatusColumn!, 'pending');
-    final data = await query.order('create_date', ascending: false);
+    final dateCol = _reportColumns != null && _reportColumns!.contains('create_date')
+        ? 'create_date'
+        : (_reportColumns != null && _reportColumns!.contains('created_at') ? 'created_at' : null);
+    final data = dateCol != null
+        ? await query.order(dateCol, ascending: false)
+        : await query;
     return (data as List).cast<Map<String, dynamic>>();
   }
 
@@ -277,7 +292,52 @@ class AdminRepository {
     }
   }
 
+  Future<AdminReportModel?> fetchReportById(int reportId) async {
+    await _ensureReportColumns();
+    final wanted = [
+      'report_id',
+      'report_by',
+      'target_type',
+      'target_id',
+      'reason',
+      'create_date',
+    ];
+    final fields = <String>[];
+    for (final w in wanted) {
+      if (_reportColumns!.contains(w)) fields.add(w);
+    }
+    if (_reportStatusColumn != null && _reportColumns!.contains(_reportStatusColumn)) {
+      fields.add(_reportStatusColumn!);
+    }
+    if (_reportColumns!.contains('post_id')) fields.add('post_id');
+    if (fields.isEmpty) fields.add('report_id');
+    final data = await _db
+        .from('report')
+        .select(fields.join(', '))
+        .eq('report_id', reportId)
+        .maybeSingle();
+    if (data == null) return null;
+    return AdminReportModel.fromJson(data);
+  }
+
   // ─── Posts / Content ─────────────────────────────────────────────────
+
+  /// Delete all reports that reference a given post ID.
+  Future<void> deleteReportsByPostId(int postId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('target_type', 'post')
+        .eq('target_id', postId);
+  }
+
+  /// Delete a single report by its ID.
+  Future<void> deleteReportById(int reportId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('report_id', reportId);
+  }
 
   Future<AdminPostModel?> fetchPost(int postId) async {
     final cols = await _ensureTableColumns('post');
@@ -355,23 +415,57 @@ class AdminRepository {
     if (cols.contains('create_date')) query = query.order('create_date', ascending: false);
     final data = await query;
 
+    final List<dynamic> rows = data as List;
+    if (rows.isEmpty) return [];
+
+    // ─ Batch fetch users ─────────────────────────────────────────────
+    final userIds = rows
+        .map((r) => (r as Map<String, dynamic>)['user_id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    final appIds = rows
+        .map((r) => (r as Map<String, dynamic>)['expert_application_id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    final userColsLocal = await _ensureTableColumns('user');
+    final userSelectFields = ['user_id', 'username', 'email', 'profile_pic_url']
+        .where((f) => userColsLocal.contains(f))
+        .join(', ');
+
+    final Map<String, Map<String, dynamic>> usersById = {};
+    if (userIds.isNotEmpty && userSelectFields.isNotEmpty) {
+      final usersRaw = await _db
+          .from('user')
+          .select(userSelectFields)
+          .inFilter('user_id', userIds);
+      for (final u in usersRaw) {
+        usersById[(u as Map<String, dynamic>)['user_id'].toString()] =
+            u as Map<String, dynamic>;
+      }
+    }
+
+    // ─ Batch fetch images ────────────────────────────────────────────
+    final imgCols = await _ensureTableColumns('expert_application_image');
+    final Map<String, List<String>> imagesByAppId = {};
+    if (imgCols.contains('image_url') && appIds.isNotEmpty) {
+      final imagesRaw = await _db
+          .from('expert_application_image')
+          .select('expert_application_id, image_url')
+          .inFilter('expert_application_id', appIds);
+      for (final img in imagesRaw) {
+        final m = img as Map<String, dynamic>;
+        final aid = m['expert_application_id'].toString();
+        imagesByAppId.putIfAbsent(aid, () => []).add(m['image_url'] as String);
+      }
+    }
+
     final List<AdminApplicationModel> result = [];
-    for (final row in data) {
-      final userId = row['user_id'] != null ? row['user_id'].toString() : '';
-      final appId = row['expert_application_id'] != null ? row['expert_application_id'].toString() : '';
-
-      final userColsLocal = await _ensureTableColumns('user');
-      final userSelectLocal = ['username', 'email', 'profile_pic_url'].where((f) => userColsLocal.contains(f)).join(', ');
-      final userRaw = userSelectLocal.isNotEmpty
-          ? await _db.from('user').select(userSelectLocal).eq('user_id', userId).maybeSingle()
-          : null;
-
-      final imgCols = await _ensureTableColumns('expert_application_image');
-      final imagesRaw = imgCols.contains('image_url')
-          ? await _db.from('expert_application_image').select('image_url').eq('expert_application_id', appId)
-          : <dynamic>[];
-      final imageUrls = imagesRaw.map((e) => e['image_url'] as String).toList();
-
+    for (final row in rows) {
+      final r = row as Map<String, dynamic>;
+      final userId = r['user_id']?.toString() ?? '';
+      final appId = r['expert_application_id']?.toString() ?? '';
       result.add(
         AdminApplicationModel.fromJson(
           row as Map<String, dynamic>,
@@ -391,10 +485,8 @@ class AdminRepository {
           .update({'application_status': 'approved'})
           .eq('expert_application_id', applicationId);
     }
-    final userCols = await _ensureTableColumns('user');
-    if (userCols.contains('system_role')) {
-      await _db.from('user').update({'system_role': 'expert'}).eq('user_id', userId);
-    }
+    // Note: system_role enum (user_role_type_enum) only accepts 'user' and 'admin'.
+    // Expert status is tracked via expert_application.application_status.
   }
 
   Future<void> rejectApplication(String applicationId) async {

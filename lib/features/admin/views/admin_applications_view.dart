@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/admin_model.dart';
 import '../view_models/admin_viewmodel.dart';
 import '../widgets/admin_application_card.dart';
 import 'admin_verify_view.dart';
@@ -64,7 +65,7 @@ class _AdminApplicationsViewState extends State<AdminApplicationsView> {
                           final app = vm.filteredApplications[i];
                           return AdminApplicationCard(
                             application: app,
-                            onTap: () => _openDetail(ctx, vm, vm.filteredApplications.indexOf(app)),  
+                            onTap: () => _openDetail(ctx, vm, app),  
                             onApprove: () => _onApprove(ctx, vm, app),
                             onReject: () => _onReject(ctx, vm, app),
                           );
@@ -78,8 +79,8 @@ class _AdminApplicationsViewState extends State<AdminApplicationsView> {
     );
   }
 
-  void _openDetail(BuildContext context, AdminViewModel vm, int index) {
-    vm.selectApplication(vm.filteredApplications.isNotEmpty ? index : 0);
+  void _openDetail(BuildContext context, AdminViewModel vm, AdminApplicationModel app) {
+    vm.selectApplication(app);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ChangeNotifierProvider<AdminViewModel>.value(

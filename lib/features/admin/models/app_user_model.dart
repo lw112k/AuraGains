@@ -43,7 +43,7 @@ class AppUser {
       id: (row['id'] ?? row['user_id'] ?? '').toString(),
       username: row['username'] as String? ?? '',
       email: row['email'] as String? ?? '',
-      avatarUrl: row['avatar_url'] as String? ?? '',
+      avatarUrl: (row['avatar_url'] ?? row['profile_pic_url']) as String? ?? '',
       level: row['level'] as String? ?? '',
       role: row['role'] as String? ?? row['system_role'] as String? ?? 'gym_member',
       createdAt: created,
