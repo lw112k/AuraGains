@@ -8,6 +8,8 @@ import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 import 'package:auragains/core/widgets/clickable_avatar.dart';
 import 'package:auragains/features/user_profile/views/user_profile_view.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/report_bottom_sheet.dart';
+import 'package:auragains/features/post_feed/repositories/report_repository.dart';
 
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key});
@@ -16,7 +18,9 @@ class PostDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<PostDetailViewModel>();
 
-    if (vm.isLoading || vm.post == null) {
+    final reportRepo = ReportRepository();
+
+    if (vm.isLoading || vm.post == null) { // show loading indicator while fetching post details
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -28,7 +32,7 @@ class PostDetailView extends StatelessWidget {
 
     return Scaffold(
       // ===================================
-      // FIXED BOTTOM INTERACTION BAR
+      // FIXED BOTTOM INTERACTION BAR (Like, Save, Comment + Post Date)
       // ===================================
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(
@@ -45,13 +49,13 @@ class PostDetailView extends StatelessWidget {
           ),
         ),
 
-        child: SafeArea(
+        child: SafeArea( // interaction buttons + post date
           top: false,
 
           child: Row(
             children: [
 
-              Icon(
+              Icon( // LIKE BUTTON
                 post.isLiked
                     ? Icons.favorite
                     : Icons.favorite_border,
@@ -72,7 +76,7 @@ class PostDetailView extends StatelessWidget {
 
               const SizedBox(width: 24),
 
-              Icon(
+              Icon( // SAVE BUTTON
                 post.isSaved
                     ? Icons.bookmark
                     : Icons.bookmark_border,
@@ -92,7 +96,7 @@ class PostDetailView extends StatelessWidget {
 
               const SizedBox(width: 24),
 
-              const Icon(
+              const Icon( // COMMENT BUTTON
                 Icons.comment_outlined,
                 color: Colors.white,
               ),
@@ -109,7 +113,7 @@ class PostDetailView extends StatelessWidget {
 
               const Spacer(),
 
-              Text(
+              Text( // POST DATE
                 '${post.createDate.day}/${post.createDate.month}/${post.createDate.year}',
 
                 style: TextStyle(
@@ -126,7 +130,7 @@ class PostDetailView extends StatelessWidget {
           children: [
 
             // ===================================
-            // SCROLLABLE CONTENT
+            // SCROLLABLE CONTENT (Post detail main content)
             // ===================================
             SingleChildScrollView(
               child: Column(
@@ -136,7 +140,7 @@ class PostDetailView extends StatelessWidget {
                   // MEDIA SECTION
                   // ===================================
                   SizedBox(
-                    height: MediaQuery.sizeOf(context).height * 0.5,
+                    height: MediaQuery.sizeOf(context).height * 0.5, // 50% of screen height
 
                     child: _MediaSection(
                       post: post,
@@ -144,7 +148,7 @@ class PostDetailView extends StatelessWidget {
                   ),
 
                   // ===================================
-                  // CONTENT SECTION
+                  // CONTENT SECTION (title, description, tags, creator info, report button)
                   // ===================================
                   Container(
                     width: double.infinity,
@@ -154,18 +158,17 @@ class PostDetailView extends StatelessWidget {
                     color: const Color.fromARGB(115, 0, 0, 0),
 
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
 
                       children: [
 
                         // ===================================
-                        // CREATOR ROW
+                        // CREATOR ROW 
                         // ===================================
                         Row(
                           children: [
 
-                            ClickableAvatar(
+                            ClickableAvatar( // CREATOR AVATAR
                               radius: 18,
                               profilePicUrl: post.creatorProfileUrl,
                               username: post.creatorUsername,
@@ -184,21 +187,39 @@ class PostDetailView extends StatelessWidget {
 
                             const SizedBox(width: 12),
 
-                            Expanded(
+                            Expanded( // USERNAME
                               child: Text(
                                 post.creatorUsername,
 
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
 
-                            IconButton(
-                              onPressed: () {},
+                            IconButton( // REPORT BUTTON
+                              onPressed: () {
+                              showModalBottomSheet(
+                                context: context,
+
+                                builder: (_) {
+                                  return ReportBottomSheet( // REPORT BOTTOM SHEET widget (inside pages/widgets/common/)
+
+                                    onSubmit: (reason) async {
+
+                                      await reportRepo.submitReport(
+                                        reportBy: vm.currentUserId,
+                                        targetType: 'post',
+                                        targetId: post.postId,
+                                        reason: reason,
+                                      );
+                                    },
+                                  );
+                                },
+                              );
+                            },
 
                               icon: const Icon(
                                 Icons.flag_outlined,
@@ -207,6 +228,23 @@ class PostDetailView extends StatelessWidget {
                             ),
                           ],
                         ),
+
+                        const SizedBox(height: 18),
+
+                        // ===================================
+                        // LINE DIVIDER
+                        // ===================================
+                        Container(
+                            height: 1.2,
+
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+
+                              borderRadius: BorderRadius.circular(
+                                999,
+                              ),
+                            ),
+                          ),
 
                         const SizedBox(height: 18),
 
@@ -303,7 +341,7 @@ class PostDetailView extends StatelessWidget {
             ),
 
             // ===================================
-            // BACK BUTTON
+            // BACK BUTTON (Top left corner)
             // ===================================
             Positioned(
               top: 10,
@@ -339,7 +377,7 @@ class PostDetailView extends StatelessWidget {
   }
 }
 
-class _MediaSection extends StatefulWidget {
+class _MediaSection extends StatefulWidget { // handles media display (images/videos) with fallback to thumbnail or title if no media available
   final PostDetailModel post;
 
   const _MediaSection({
@@ -378,7 +416,7 @@ class _MediaSectionState
           PageView.builder(
             itemCount: widget.post.mediaList.length,
 
-            onPageChanged: (index) {
+            onPageChanged: (index) { // update current index for page indicator
               setState(() {
                 currentIndex = index;
               });
@@ -386,8 +424,7 @@ class _MediaSectionState
 
             itemBuilder: (context, index) {
 
-              final PostMediaModel media =
-                  widget.post.mediaList[index];
+              final PostMediaModel media = widget.post.mediaList[index];
 
               // ===================================
               // IMAGE
@@ -397,21 +434,17 @@ class _MediaSectionState
                   color: Colors.black,
 
                   child: PhotoView(
-                    imageProvider:
-                        NetworkImage(media.mediaUrl),
+                    imageProvider: NetworkImage(media.mediaUrl), // get image via the link from network
 
-                    backgroundDecoration:
-                        const BoxDecoration(
+                    backgroundDecoration: const BoxDecoration(
                       color: Colors.black,
                     ),
 
-                    minScale:
-                        PhotoViewComputedScale.contained,
+                    minScale: PhotoViewComputedScale.contained,
 
-                    maxScale:
-                        PhotoViewComputedScale.covered * 3,
+                    maxScale: PhotoViewComputedScale.covered * 3, // allow zooming up to 3x
 
-                    errorBuilder:
+                    errorBuilder: // if image fails to load, show fallback (post title with dark background)
                         (_, __, ___) {
                       return _buildFallback();
                     },
@@ -422,14 +455,14 @@ class _MediaSectionState
               // ===================================
               // VIDEO
               // ===================================
-              return _VideoPlayerWidget(
+              return _VideoPlayerWidget( // else if it's a video, use the custom video player widget defined below
                 videoUrl: media.mediaUrl,
               );
             },
           ),
 
           // ===================================
-          // PAGE INDICATOR
+          // PAGE INDICATOR (Display dots at the bottom center if there are multiple media items)
           // ===================================
           Positioned(
             bottom: 16,
@@ -437,22 +470,17 @@ class _MediaSectionState
             right: 0,
 
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
 
               children: List.generate(
-                widget.post.mediaList.length,
-                (index) {
+                widget.post.mediaList.length, (index) {
 
-                  final isActive =
-                      currentIndex == index;
+                  final isActive = currentIndex == index;
 
                   return AnimatedContainer(
-                    duration:
-                        const Duration(milliseconds: 200),
+                    duration: const Duration(milliseconds: 200),
 
-                    margin:
-                        const EdgeInsets.symmetric(
+                    margin: const EdgeInsets.symmetric(
                       horizontal: 4,
                     ),
 
@@ -464,8 +492,7 @@ class _MediaSectionState
                           ? Colors.cyanAccent
                           : const Color.fromARGB(39, 24, 255, 255),
 
-                      borderRadius:
-                          BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   );
                 },
@@ -542,8 +569,7 @@ class _VideoPlayerWidget extends StatefulWidget {
       _VideoPlayerWidgetState();
 }
 
-class _VideoPlayerWidgetState
-    extends State<_VideoPlayerWidget> {
+class _VideoPlayerWidgetState extends State<_VideoPlayerWidget> {
 
   late VideoPlayerController _controller;
 
@@ -564,7 +590,7 @@ class _VideoPlayerWidgetState
     // ===================================
     _controller.addListener(() {
 
-      if (mounted) {
+      if (mounted) { // update UI when video player state changes (e.g. play/pause, buffering, etc.)
         setState(() {});
       }
     });
@@ -573,8 +599,6 @@ class _VideoPlayerWidgetState
     // INITIALIZE
     // ===================================
     _controller.initialize().then((_) {
-
-      _controller.setLooping(true);
 
       // auto play
       _controller.play();
@@ -620,8 +644,7 @@ class _VideoPlayerWidgetState
         alignment: Alignment.center,
 
         child: const Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
 
           children: [
 
@@ -661,8 +684,7 @@ class _VideoPlayerWidgetState
 
           child: Center(
             child: AspectRatio(
-              aspectRatio:
-                  _controller.value.aspectRatio,
+              aspectRatio: _controller.value.aspectRatio,
 
               child: VideoPlayer(
                 _controller,
@@ -676,10 +698,9 @@ class _VideoPlayerWidgetState
         // ===================================
         Positioned.fill(
           child: GestureDetector(
-            behavior:
-                HitTestBehavior.translucent,
+            behavior: HitTestBehavior.translucent,
 
-            onTap: () {
+            onTap: () { // toggle play/pause on tap
 
               if (_controller.value.isPlaying) {
                 _controller.pause();
@@ -693,7 +714,7 @@ class _VideoPlayerWidgetState
         ),
 
         // ===================================
-        // PLAY ICON OVERLAY
+        // PLAY ICON OVERLAY, if video is paused, show a play icon in the center
         // ===================================
         if (!_controller.value.isPlaying)
           Container(

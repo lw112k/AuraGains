@@ -99,7 +99,7 @@ class PostCard extends StatelessWidget {
   // ===================================
   // TEXT FALLBACK WIDGET
   // ===================================
-  Widget buildTextFallback() {
+  Widget _buildTextFallback() {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -216,14 +216,12 @@ class PostCard extends StatelessWidget {
                               error,
                               stackTrace,
                             ) {
-                              return buildTextFallback();
+                              return _buildTextFallback();
                             },
                           )
 
-                        // ===================================
                         // TEXT FALLBACK (Text as preview thumnail for videos or posts without valid media(text post))
-                        // ===================================
-                        : buildTextFallback()
+                        : _buildTextFallback()
                   ),
 
                   // ===================================

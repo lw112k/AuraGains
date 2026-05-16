@@ -31,8 +31,7 @@ class FypFeedList extends StatelessWidget {
           vertical: 10,
         ),
 
-        gridDelegate:
-            const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2, // number of columns in the grid
           crossAxisSpacing: 4, // horizontal spacing between the grid items
           mainAxisSpacing: 4, // vertical spacing between the grid items
