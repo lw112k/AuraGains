@@ -96,7 +96,7 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Reason: ${report.reason ?? '(none)'}',
+                        'Reason: ${report.displayReason.isNotEmpty ? report.displayReason : '(none)'}',
                         style: const TextStyle(
                             color: Colors.white, fontSize: 14),
                       ),

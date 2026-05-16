@@ -95,9 +95,11 @@ class AdminRepository {
       ? await _db.from('user').select(userSelect)
       : await _db.from('user').select('user_id');
 
+    // Fetch reports with reason field — status is derived from the reason prefix
+    // ([APPROVED]/[DISMISSED]), not from a separate status column.
     await _ensureReportColumns();
-    final reportsRaw = _reportStatusColumn != null && _reportColumns!.contains(_reportStatusColumn)
-      ? await _db.from('report').select('report_id, $_reportStatusColumn')
+    final reportsRaw = _reportColumns != null && _reportColumns!.contains('reason')
+      ? await _db.from('report').select('report_id, reason')
       : await _db.from('report').select('report_id');
 
     final appCols = await _ensureTableColumns('expert_application');
@@ -116,8 +118,12 @@ class AdminRepository {
     final bannedUsers = userCols.contains('is_banned')
       ? usersRaw.where((u) => u['is_banned'] == true).length
       : 0;
-    final pendingReports = _reportStatusColumn != null
-      ? reportsRaw.where((r) => (r[_reportStatusColumn] ?? 'pending') == 'pending').length
+    // Pending means no [APPROVED] or [DISMISSED] prefix on the reason field.
+    final pendingReports = _reportColumns != null && _reportColumns!.contains('reason')
+      ? reportsRaw.where((r) {
+          final reason = (r['reason'] as String?) ?? '';
+          return !reason.startsWith('[APPROVED]') && !reason.startsWith('[DISMISSED]');
+        }).length
       : reportsRaw.length;
     final pendingApplications = appCols.contains('application_status')
       ? appsRaw.where((a) => (a['application_status'] ?? 'pending') == 'pending').length
@@ -177,6 +183,8 @@ class AdminRepository {
   }
 
   Future<void> setSystemRole(String userId, String role) async {
+    // NB: user_role_type_enum must include 'expert' — run:
+    //   ALTER TYPE user_role_type_enum ADD VALUE IF NOT EXISTS 'expert';
     final cols = await _ensureTableColumns('user');
     if (!cols.contains('system_role')) return;
     await _db.from('user').update({'system_role': role}).eq('user_id', userId);
@@ -276,19 +284,37 @@ class AdminRepository {
     return data;
   }
 
-  Future<void> approveReport(String reportId) async {
-    await _ensureReportColumns();
-    if (_reportStatusColumn != null) {
-      final idField = _reportColumns!.contains('report_id') ? 'report_id' : (_reportColumns!.contains('id') ? 'id' : 'report_id');
-      await _db.from('report').update({_reportStatusColumn!: 'approved'}).eq(idField, reportId);
+  Future<void> approveReport(int reportId) async {
+    // Stamp [APPROVED] on the reason column — AdminReportModel.deriveStatus
+    // reads status from the reason prefix, not from a separate status column.
+    final current = await _db
+        .from('report')
+        .select('reason')
+        .eq('report_id', reportId)
+        .maybeSingle();
+    final originalReason = (current?['reason'] as String? ?? '');
+    if (!originalReason.startsWith('[APPROVED]') &&
+        !originalReason.startsWith('[DISMISSED]')) {
+      await _db
+          .from('report')
+          .update({'reason': '[APPROVED] $originalReason'})
+          .eq('report_id', reportId);
     }
   }
 
-  Future<void> rejectReport(String reportId) async {
-    await _ensureReportColumns();
-    if (_reportStatusColumn != null) {
-      final idField = _reportColumns!.contains('report_id') ? 'report_id' : (_reportColumns!.contains('id') ? 'id' : 'report_id');
-      await _db.from('report').update({_reportStatusColumn!: 'rejected'}).eq(idField, reportId);
+  Future<void> rejectReport(int reportId) async {
+    final current = await _db
+        .from('report')
+        .select('reason')
+        .eq('report_id', reportId)
+        .maybeSingle();
+    final originalReason = (current?['reason'] as String? ?? '');
+    if (!originalReason.startsWith('[APPROVED]') &&
+        !originalReason.startsWith('[DISMISSED]')) {
+      await _db
+          .from('report')
+          .update({'reason': '[DISMISSED] $originalReason'})
+          .eq('report_id', reportId);
     }
   }
 
@@ -485,8 +511,15 @@ class AdminRepository {
           .update({'application_status': 'approved'})
           .eq('expert_application_id', applicationId);
     }
-    // Note: system_role enum (user_role_type_enum) only accepts 'user' and 'admin'.
-    // Expert status is tracked via expert_application.application_status.
+    // Also promote the user's system_role to 'expert'.
+    // REQUIRES: ALTER TYPE user_role_type_enum ADD VALUE 'expert'; in Supabase SQL editor.
+    final userCols = await _ensureTableColumns('user');
+    if (userCols.contains('system_role')) {
+      await _db
+          .from('user')
+          .update({'system_role': 'expert'})
+          .eq('user_id', userId);
+    }
   }
 
   Future<void> rejectApplication(String applicationId) async {

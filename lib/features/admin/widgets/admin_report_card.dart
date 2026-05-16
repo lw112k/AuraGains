@@ -78,7 +78,7 @@ class AdminReportCard extends StatelessWidget {
             Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Text(
-              report.reason ?? '(no reason provided)',
+              report.displayReason.isNotEmpty ? report.displayReason : '(no reason provided)',
               style: const TextStyle(color: Colors.white, fontSize: 14),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,

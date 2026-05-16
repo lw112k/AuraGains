@@ -130,23 +130,55 @@ class AdminReportRepository {
   }
 
   Future<void> approveReport(int reportId) async {
-    await _ensureColumns();
-    if (_reportStatusColumn != null) {
+    // 1. Delete the post
+    final postId = await _getPostIdForReport(reportId);
+    if (postId != null) {
+      await deletePost(postId);
+    }
+    // 2. Stamp the reason field
+    final current = await _db
+        .from('report')
+        .select('reason')
+        .eq('report_id', reportId)
+        .maybeSingle();
+    final originalReason = (current?['reason'] as String? ?? '');
+    if (!originalReason.startsWith('[APPROVED]') &&
+        !originalReason.startsWith('[DISMISSED]')) {
       await _db
           .from('report')
-          .update({_reportStatusColumn!: 'approved'})
+          .update({'reason': '[APPROVED] $originalReason'})
           .eq('report_id', reportId);
     }
   }
 
   Future<void> rejectReport(int reportId) async {
-    await _ensureColumns();
-    if (_reportStatusColumn != null) {
+    final current = await _db
+        .from('report')
+        .select('reason')
+        .eq('report_id', reportId)
+        .maybeSingle();
+    final originalReason = (current?['reason'] as String? ?? '');
+    if (!originalReason.startsWith('[APPROVED]') &&
+        !originalReason.startsWith('[DISMISSED]')) {
       await _db
           .from('report')
-          .update({_reportStatusColumn!: 'rejected'})
+          .update({'reason': '[DISMISSED] $originalReason'})
           .eq('report_id', reportId);
     }
+  }
+
+  Future<int?> _getPostIdForReport(int reportId) async {
+    await _ensureColumns();
+    final data = await _db
+        .from('report')
+        .select('target_id, target_type')
+        .eq('report_id', reportId)
+        .maybeSingle();
+    if (data == null) return null;
+    if ((data['target_type'] as String?) == 'post') {
+      return data['target_id'] as int?;
+    }
+    return null;
   }
 
   // ─── Posts ─────────────────────────────────────────────────────────

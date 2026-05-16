@@ -288,21 +288,23 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Approve report → delete the flagged post + all reports for it.
+  /// Approve report → delete the flagged post, keep the report row, stamp [APPROVED].
   Future<bool> approveReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      // Find the postId from local state
+      // Stamp [APPROVED] first, then try to delete the flagged post.
+      await _repo.approveReport(reportId);
       final postId = _findPostIdForReport(reportId);
       if (postId != null) {
         await _repo.deletePost(postId);
-        await _repo.deleteReportsByPostId(postId);
-        _removeReportsByPostId(postId);
-      } else {
-        // Report has no post reference — just delete the report
-        await _repo.deleteReportById(reportId);
-        _removeReportById(reportId);
+      }
+      // Refresh all report lists so every view sees fresh data.
+      await loadReports();
+      stats = await _repo.fetchDashboardStats();
+      recentReports = await _repo.fetchReports(status: 'pending');
+      if (recentReports.length > 5) {
+        recentReports = recentReports.sublist(0, 5);
       }
       return true;
     } catch (e) {
@@ -314,13 +316,18 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Dismiss report → delete just that one report.
+  /// Dismiss report → keep the post, keep the report row, stamp [DISMISSED].
   Future<bool> dismissReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.deleteReportById(reportId);
-      _removeReportById(reportId);
+      await _repo.rejectReport(reportId);
+      await loadReports();
+      stats = await _repo.fetchDashboardStats();
+      recentReports = await _repo.fetchReports(status: 'pending');
+      if (recentReports.length > 5) {
+        recentReports = recentReports.sublist(0, 5);
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to dismiss report: $e';

@@ -46,20 +46,13 @@ class AdminReportViewModel extends ChangeNotifier {
 
   // ─── Actions ─────────────────────────────────────────────────────────
 
-  /// Approve report → delete the flagged post + all reports for it.
+  /// Approve report → delete the flagged post, keep the report row, stamp [APPROVED].
   Future<bool> approveReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      final postId = _findPostIdForReport(reportId);
-      if (postId != null) {
-        await _repo.deletePost(postId);
-        await _repo.deleteReportsByPostId(postId);
-        _removeReportsByPostId(postId);
-      } else {
-        await _repo.deleteReportById(reportId);
-        _removeReportById(reportId);
-      }
+      await _repo.approveReport(reportId); // deletes post, stamps [APPROVED]
+      await loadReports(); // reload so updated reason is reflected
       return true;
     } catch (e) {
       errorMessage = 'Failed to approve report: $e';
@@ -70,16 +63,16 @@ class AdminReportViewModel extends ChangeNotifier {
     }
   }
 
-  /// Reject/dismiss report → delete just that one report.
+  /// Dismiss report → keep the post, keep the report row, stamp [DISMISSED].
   Future<bool> rejectReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.deleteReportById(reportId);
-      _removeReportById(reportId);
+      await _repo.rejectReport(reportId); // stamps [DISMISSED]
+      await loadReports(); // reload so updated reason is reflected
       return true;
     } catch (e) {
-      errorMessage = 'Failed to reject report: $e';
+      errorMessage = 'Failed to dismiss report: $e';
       return false;
     } finally {
       _isActionLoading = false;
@@ -121,17 +114,6 @@ class AdminReportViewModel extends ChangeNotifier {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────
-
-  int? _findPostIdForReport(int reportId) {
-    for (final r in _allReports) {
-      if (r.reportId == reportId) return r.postId;
-    }
-    return null;
-  }
-
-  void _removeReportById(int reportId) {
-    _allReports = _allReports.where((r) => r.reportId != reportId).toList();
-  }
 
   void _removeReportsByPostId(int postId) {
     _allReports = _allReports

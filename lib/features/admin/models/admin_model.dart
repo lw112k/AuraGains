@@ -98,18 +98,27 @@ class AdminReportModel {
       targetId: _toInt(json['target_id']),
       reason: json['reason'] as String?,
       createDate: _toDate(json['create_date']),
-      status: json['status'] as String?
-          ?? json['report_status'] as String?
-          ?? json['state'] as String?
-          ?? (json['is_resolved'] != null
-              ? ((json['is_resolved'] as bool) ? 'resolved' : 'pending')
-              : null),
+      status: AdminReportModel.deriveStatus(json['reason'] as String?),
       postId: json.containsKey('post_id') && json['post_id'] != null
           ? _toInt(json['post_id'])
           : (json['target_type'] == 'post' && json['target_id'] != null)
               ? _toInt(json['target_id'])
               : null,
     );
+  }
+
+  static String deriveStatus(String? reason) {
+    final r = reason ?? '';
+    if (r.startsWith('[APPROVED]')) return 'approved';
+    if (r.startsWith('[DISMISSED]')) return 'dismissed';
+    return 'pending';
+  }
+
+  String get displayReason {
+    final r = reason ?? '';
+    if (r.startsWith('[APPROVED] ')) return r.substring('[APPROVED] '.length);
+    if (r.startsWith('[DISMISSED] ')) return r.substring('[DISMISSED] '.length);
+    return r;
   }
 
   AdminReportModel copyWith({String? status}) => AdminReportModel(
