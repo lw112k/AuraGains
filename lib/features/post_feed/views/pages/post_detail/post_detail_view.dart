@@ -10,7 +10,9 @@ import 'package:auragains/features/post_feed/models/post_media_model.dart';
 import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
+
 import 'package:auragains/features/post_feed/views/widgets/common/report_button.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/like_button.dart';
 
 
 class PostDetailView extends StatelessWidget {
@@ -55,23 +57,13 @@ class PostDetailView extends StatelessWidget {
           child: Row(
             children: [
 
-              Icon( // LIKE BUTTON
-                post.isLiked
-                    ? Icons.favorite
-                    : Icons.favorite_border,
+              LikeButton(
+                isLiked: post.isLiked,
+                likeCount: post.likeCount,
 
-                color:
-                    post.isLiked ? Colors.cyanAccent : Colors.white,
-              ),
-
-              const SizedBox(width: 6),
-
-              Text(
-                '${post.likeCount}',
-
-                style: TextStyle(
-                  color: post.isLiked ? Colors.cyanAccent : Colors.white,
-                ),
+                onTap: () async {
+                  await vm.toggleLike();
+                },
               ),
 
               const SizedBox(width: 24),

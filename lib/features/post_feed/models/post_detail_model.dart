@@ -8,7 +8,7 @@ class PostDetailModel {
   final String? thumbnailUrl;
   final String postType;
   final String visibility;
-  final int likeCount;
+  int likeCount;
   final DateTime createDate;
 
   final String creatorId;
@@ -21,8 +21,8 @@ class PostDetailModel {
   final int totalComment;
   final int totalSave;
 
-  final bool isLiked;
-  final bool isSaved;
+  bool isLiked;
+  bool isSaved;
 
   PostDetailModel({
     required this.postId,
