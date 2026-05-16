@@ -10,8 +10,8 @@ import 'package:auragains/features/post_feed/models/post_media_model.dart';
 import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
-import 'package:auragains/features/post_feed/views/widgets/common/report_bottom_sheet.dart';
-import 'package:auragains/features/post_feed/repositories/report_repository.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/report_button.dart';
+
 
 class PostDetailView extends StatelessWidget {
   const PostDetailView({super.key});
@@ -19,8 +19,6 @@ class PostDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<PostDetailViewModel>();
-
-    final reportRepo = ReportRepository();
 
     if (vm.isLoading || vm.post == null) { // show loading indicator while fetching post details
       return const Scaffold(
@@ -201,32 +199,10 @@ class PostDetailView extends StatelessWidget {
                               ),
                             ),
 
-                            IconButton( // REPORT BUTTON
-                              onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-
-                                builder: (_) {
-                                  return ReportBottomSheet( // REPORT BOTTOM SHEET widget (inside pages/widgets/common/)
-
-                                    onSubmit: (reason) async {
-
-                                      await reportRepo.submitReport(
-                                        reportBy: vm.currentUserId,
-                                        targetType: 'post',
-                                        targetId: post.postId,
-                                        reason: reason,
-                                      );
-                                    },
-                                  );
-                                },
-                              );
-                            },
-
-                              icon: const Icon(
-                                Icons.flag_outlined,
-                                color: Colors.white,
-                              ),
+                            ReportButton(
+                              reportBy: vm.currentUserId,
+                              targetType: 'post',
+                              targetId: post.postId,
                             ),
                           ],
                         ),
@@ -447,7 +423,7 @@ class _MediaSectionState
                     maxScale: PhotoViewComputedScale.covered * 3, // allow zooming up to 3x
 
                     errorBuilder: // if image fails to load, show fallback (post title with dark background)
-                        (_, __, ___) {
+                        (_, _, _) {
                       return _buildFallback();
                     },
                   ),
@@ -516,7 +492,7 @@ class _MediaSectionState
 
         width: double.infinity,
 
-        errorBuilder: (_, __, ___) {
+        errorBuilder: (_, _, _) {
           return _buildFallback();
         },
       );

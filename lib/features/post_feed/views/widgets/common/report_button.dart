@@ -1,20 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:auragains/features/post_feed/repositories/report_repository.dart';
 
-class ReportBottomSheet extends StatefulWidget {
+class ReportButton extends StatelessWidget {
+  final String reportBy;
+  final String targetType;
+  final int targetId;
+
+  const ReportButton({
+    super.key,
+    required this.reportBy,
+    required this.targetType,
+    required this.targetId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    final reportRepo = ReportRepository();
+
+    return IconButton(
+      onPressed: () {
+
+        showModalBottomSheet(
+          context: context,
+
+          builder: (_) {
+            return _ReportBottomSheet(
+
+              onSubmit: (reason) async {
+
+                await reportRepo.submitReport(
+                  reportBy: reportBy,
+                  targetType: targetType,
+                  targetId: targetId,
+                  reason: reason,
+                );
+              },
+            );
+          },
+        );
+      },
+
+      icon: const Icon(
+        Icons.flag_outlined,
+        color: Colors.white,
+      ),
+    );
+  }
+}
+
+class _ReportBottomSheet extends StatefulWidget {
 
   final Future<void> Function(String reason) onSubmit; // use ReportRepository.submitReport function
 
-  const ReportBottomSheet({
-    super.key,
+  const _ReportBottomSheet({
     required this.onSubmit,
   });
 
   @override
-  State<ReportBottomSheet> createState() =>
+  State<_ReportBottomSheet> createState() =>
       _ReportBottomSheetState();
 }
 
-class _ReportBottomSheetState extends State<ReportBottomSheet> {
+class _ReportBottomSheetState extends State<_ReportBottomSheet> {
 
   String selectedReason = '';
 
