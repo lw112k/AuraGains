@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
 import '../../expert/views/expert_application_views.dart';
+import '../../auth/view_models/auth_viewmodel.dart';
 
 class UserProfileView extends StatelessWidget {
   final String targetUserId;
@@ -304,18 +305,22 @@ class UserProfileView extends StatelessWidget {
         );
       } else {
         return Material(
-          color: Colors.cyanAccent, // Solid color to scream "Click Me!"
+          color: Colors.cyanAccent,
           borderRadius: BorderRadius.circular(50),
           child: InkWell(
             borderRadius: BorderRadius.circular(50),
-            onTap: () {
-              Navigator.of(context).push(
+            onTap: () async {
+              // 1. Wait here while they are on the application screen
+              await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => TrainerApplicationScreen(
                     currentUserId: viewModel.currentUserId,
                   ),
                 ),
               );
+
+              // 2. Refresh the profile the exact second they come back
+              viewModel.refreshProfile();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

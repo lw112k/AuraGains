@@ -149,6 +149,19 @@ class UserProfileViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> refreshProfile() async {
+    await Future.wait(<Future<void>>[
+      _fetchLevels(),
+      _fetchProfileAndExpertStatus(),
+      _fetchBodyStats(),
+      _fetchNetworkStats(),
+      _fetchPostsData(),
+      if (!_isMe) _checkFollowStatus(),
+    ]);
+
+    notifyListeners();
+  }
+
   Future<void> clearProfileImage(BuildContext context) async {
     _isUploadingPic = true;
     notifyListeners();

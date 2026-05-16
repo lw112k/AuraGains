@@ -9,6 +9,7 @@ import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
 import '../../core/widgets/user_homepage_frame.dart';
 import '../../core/widgets/splash_screen.dart';
+import '../../features/expert/views/expert_application_views.dart';
 
 // ─────────────────────────────────────────────────────────
 // ROUTE PATH CONSTANTS
