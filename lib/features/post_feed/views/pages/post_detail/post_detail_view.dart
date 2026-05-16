@@ -13,6 +13,7 @@ import 'package:auragains/features/post_feed/view_models/post_detail/post_detail
 
 import 'package:auragains/features/post_feed/views/widgets/common/report_button.dart';
 import 'package:auragains/features/post_feed/views/widgets/common/like_button.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/save_button.dart';
 
 
 class PostDetailView extends StatelessWidget {
@@ -22,7 +23,7 @@ class PostDetailView extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<PostDetailViewModel>();
 
-    if (vm.isLoading || vm.post == null) { // show loading indicator while fetching post details
+    if (vm.isPageLoading || vm.post == null) { // show loading indicator while fetching post details
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
@@ -57,7 +58,7 @@ class PostDetailView extends StatelessWidget {
           child: Row(
             children: [
 
-              LikeButton(
+              LikeButton( // Like button
                 isLiked: post.isLiked,
                 likeCount: post.likeCount,
 
@@ -68,22 +69,13 @@ class PostDetailView extends StatelessWidget {
 
               const SizedBox(width: 24),
 
-              Icon( // SAVE BUTTON
-                post.isSaved
-                    ? Icons.bookmark
-                    : Icons.bookmark_border,
+              SaveButton( // Save button
+                isSaved: post.isSaved,
+                saveCount: post.totalSave,
 
-                color: post.isSaved ? Colors.cyanAccent : Colors.white,
-              ),
-
-              const SizedBox(width: 6),
-
-              Text(
-                '${post.totalSave}',
-
-                style: TextStyle(
-                  color: post.isSaved ? Colors.cyanAccent : Colors.white,
-                ),
+                onTap: () async {
+                  await vm.toggleSave();
+                },
               ),
 
               const SizedBox(width: 24),

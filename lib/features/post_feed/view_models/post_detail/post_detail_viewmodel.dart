@@ -4,19 +4,22 @@ import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 
 import 'package:auragains/features/post_feed/repositories/post_detail_repository.dart';
 import 'package:auragains/features/post_feed/repositories/like_repository.dart';
+import 'package:auragains/features/post_feed/repositories/save_repository.dart';
 
 class PostDetailViewModel extends ChangeNotifier {
 
   final PostDetailRepository _postDetailRepo = PostDetailRepository();
   final LikeRepository _likeRepo = LikeRepository();
+  final SaveRepository _saveRepo = SaveRepository();
 
   final int postId;
   final String currentUserId;
 
   PostDetailModel? post; // This View Model only holds for one post.
 
-  bool isLoading = false;
+  bool isPageLoading = false;
   bool isLikeLoading = false;
+  bool isSaveLoading = false;
 
   PostDetailViewModel({
     required this.postId,
@@ -25,7 +28,7 @@ class PostDetailViewModel extends ChangeNotifier {
 
   Future<void> loadPost() async {
 
-    isLoading = true;
+    isPageLoading = true;
     notifyListeners();
 
     try {
@@ -41,7 +44,7 @@ class PostDetailViewModel extends ChangeNotifier {
 
     }
 
-    isLoading = false;
+    isPageLoading = false;
     notifyListeners();
   }
 
@@ -96,6 +99,60 @@ class PostDetailViewModel extends ChangeNotifier {
     } finally {
 
       isLikeLoading = false;
+    }
+  }
+
+  Future<void> toggleSave() async {
+    if (post == null || isSaveLoading) return;
+
+    isSaveLoading = true;
+
+    final currentSaved = post!.isSaved;
+
+    // optimistic update
+    post!.isSaved = !currentSaved;
+
+    if (currentSaved) {
+      post!.totalSave--;
+    } else {
+      post!.totalSave++;
+    }
+
+    notifyListeners();
+
+    try {
+
+      if (currentSaved) {
+
+        await _saveRepo.unsavePost(
+          postId: post!.postId,
+          userId: currentUserId,
+        );
+
+      } else {
+
+        await _saveRepo.savePost(
+          postId: post!.postId,
+          userId: currentUserId,
+        );
+      }
+
+    } catch (e) {
+
+      // rollback
+      post!.isSaved = currentSaved;
+
+      if (currentSaved) {
+        post!.totalSave++;
+      } else {
+        post!.totalSave--;
+      }
+
+      notifyListeners();
+
+    } finally {
+
+      isSaveLoading = false;
     }
   }
 

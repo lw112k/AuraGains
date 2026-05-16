@@ -18,8 +18,8 @@ class PostDetailModel {
   final List<PostMediaModel> mediaList;
   final List<TagModel> tagList;
 
-  final int totalComment;
-  final int totalSave;
+  int totalComment;
+  int totalSave;
 
   bool isLiked;
   bool isSaved;
