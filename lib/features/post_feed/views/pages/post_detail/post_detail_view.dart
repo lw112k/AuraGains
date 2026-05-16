@@ -3,11 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:photo_view/photo_view.dart';
 
-import 'package:auragains/features/post_feed/models/post_media_model.dart';
-import 'package:auragains/features/post_feed/models/post_detail_model.dart';
-import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 import 'package:auragains/core/widgets/clickable_avatar.dart';
 import 'package:auragains/features/user_profile/views/user_profile_view.dart';
+
+import 'package:auragains/features/post_feed/models/post_media_model.dart';
+import 'package:auragains/features/post_feed/models/post_detail_model.dart';
+
+import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 import 'package:auragains/features/post_feed/views/widgets/common/report_bottom_sheet.dart';
 import 'package:auragains/features/post_feed/repositories/report_repository.dart';
 

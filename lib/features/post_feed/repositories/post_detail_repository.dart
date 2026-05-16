@@ -1,5 +1,5 @@
-import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 
 class PostDetailRepository {
 

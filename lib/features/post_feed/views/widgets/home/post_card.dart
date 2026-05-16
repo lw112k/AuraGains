@@ -1,13 +1,15 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import 'package:auragains/core/widgets/clickable_avatar.dart';
 import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
+import 'package:auragains/features/user_profile/views/user_profile_view.dart';
+
 import 'package:auragains/features/post_feed/models/post_preview_model.dart';
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 import 'package:auragains/features/post_feed/views/pages/post_detail/post_detail_view.dart';
-import 'package:auragains/core/widgets/clickable_avatar.dart';
-import 'package:auragains/features/user_profile/views/user_profile_view.dart';
+import 'package:auragains/features/post_feed/repositories/user_event_repository.dart';
 
 class PostCard extends StatelessWidget {
   final PostPreviewModel post;
@@ -151,14 +153,19 @@ class PostCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         splashColor: Colors.cyanAccent,
 
-        onTap: () { // when user tap on the post card, navigate to the post detail view and pass the post id
+        onTap: () async { // when user tap on the post card, navigate to the post detail view and record post view in user event
+          await UserEventRepository().recordPostViewEvent(
+            postId: post.postId,
+            userId: authVm.currentUser!.id
+          );
+
+          if (!context.mounted) return;
+
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => ChangeNotifierProvider(
                 create: (context) {
-
-                  final authVm = context.read<AuthViewModel>();
 
                   return PostDetailViewModel(
                     postId: post.postId,
