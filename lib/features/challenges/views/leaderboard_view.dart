@@ -144,7 +144,7 @@ class LeaderboardView extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? Colors.cyanAccent.withOpacity(0.05)
-            : const Color(0xFF121212),
+            : const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isMe ? Colors.cyanAccent : Colors.white10),
         boxShadow: isMe
@@ -257,7 +257,7 @@ class LeaderboardView extends StatelessWidget {
           // Changed padding to symmetric so it is perfectly centered vertically
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
+            color: Colors.black,
             border: const Border(
               top: BorderSide(color: Colors.cyanAccent, width: 0.5),
             ),
