@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile_model.dart';
 import '../models/body_stats_model.dart';
@@ -311,6 +312,44 @@ class UserProfileRepository {
     } catch (e) {
       print('Network Stats Error: $e');
       return {'followers': 0, 'following': 0};
+    }
+  }
+  Future<Map<String, dynamic>?> getActiveProtocol(String userId) async {
+    try {
+      // 1. Check for a live session (end_time IS NULL)
+      final liveSession = await _supabase
+          .from('workout_session')
+          .select('train_proto_id')
+          .eq('user_id', userId)
+          .filter('end_time', 'is', null)
+          .order('start_time', ascending: false)
+          .limit(1)
+          .maybeSingle();
+  
+      // 2. Fall back to the most recently completed session
+      final lastSession = liveSession ??
+          await _supabase
+              .from('workout_session')
+              .select('train_proto_id')
+              .eq('user_id', userId)
+              .not('end_time', 'is', null)
+              .order('start_time', ascending: false)
+              .limit(1)
+              .maybeSingle();
+  
+      if (lastSession == null) return null;
+  
+      final int protoId = lastSession['train_proto_id'];
+  
+      // 3. Fetch full protocol details — is_public is what the view gate checks
+      return await _supabase
+          .from('training_protocol')
+          .select('train_proto_id, proto_title, goal, is_public, create_by, user:create_by(username)')
+          .eq('train_proto_id', protoId)
+          .maybeSingle();
+    } catch (e) {
+      debugPrint('Repo Error (Active Protocol): $e');
+      return null;
     }
   }
 }

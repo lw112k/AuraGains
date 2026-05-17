@@ -25,6 +25,9 @@ class UserProfileViewModel extends ChangeNotifier {
   LevelModel? _currentLevel;
   List<LevelModel> _availableLevels = [];
 
+  Map<String, dynamic>? _activeProtocol;
+  Map<String, dynamic>? get activeProtocol => _activeProtocol;
+
   int _followerCount = 0;
   int _followingCount = 0;
 
@@ -76,6 +79,7 @@ class UserProfileViewModel extends ChangeNotifier {
       _fetchBodyStats(),
       _fetchNetworkStats(),
       _fetchPostsData(),
+      _fetchActiveProtocol(), 
     ]);
 
     _isLoading = false;
@@ -157,6 +161,7 @@ class UserProfileViewModel extends ChangeNotifier {
       _fetchNetworkStats(),
       _fetchPostsData(),
       if (!_isMe) _checkFollowStatus(),
+      _fetchActiveProtocol(), 
     ]);
 
     notifyListeners();
@@ -290,4 +295,7 @@ class UserProfileViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+  Future<void> _fetchActiveProtocol() async {
+      _activeProtocol = await _repository.getActiveProtocol(targetUserId);
+  } 
 }

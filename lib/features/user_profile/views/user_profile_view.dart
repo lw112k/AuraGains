@@ -1,3 +1,4 @@
+import 'package:auragains/features/workout_management/views/protocol_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
@@ -582,12 +583,12 @@ class UserProfileView extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: <Widget>[
+        children: [
           if (viewModel.isMe) ...<Widget>[
             _actionButton(
               text: 'Workout Plan',
               icon: Icons.fitness_center,
-              onTap: () {},
+              onTap: () => _openWorkoutPlan(context, viewModel),
             ),
           ] else ...<Widget>[
             Row(
@@ -602,7 +603,7 @@ class UserProfileView extends StatelessWidget {
                             ? Colors.transparent
                             : Colors.cyanAccent,
                         side: viewModel.isFollowing
-                            ? BorderSide(color: Colors.grey.withOpacity(0.5))
+                            ? BorderSide(color: Colors.grey.withValues(alpha: 0.5))
                             : BorderSide.none,
                         elevation: viewModel.isFollowing ? 0 : 2,
                         shape: RoundedRectangleBorder(
@@ -629,7 +630,7 @@ class UserProfileView extends StatelessWidget {
                   child: _actionButton(
                     text: 'View Workout',
                     icon: Icons.visibility,
-                    onTap: () {},
+                    onTap: () => _openWorkoutPlan(context, viewModel),
                   ),
                 ),
               ],
@@ -639,6 +640,48 @@ class UserProfileView extends StatelessWidget {
       ),
     );
   }
+
+  void _openWorkoutPlan(BuildContext context, UserProfileViewModel viewModel) {
+  final protocol = viewModel.activeProtocol;
+
+  // No training history at all
+  if (protocol == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          viewModel.isMe
+              ? 'You have no active workout protocol yet. Start one from the Workout tab!'
+              : '${viewModel.profile?.username ?? 'This user'} hasn\'t started any training protocols yet.',
+        ),
+        backgroundColor: const Color(0xFF2A2A2A),
+      ),
+    );
+    return;
+  }
+
+  // 🔒 Privacy gate — only applies when viewing someone else's profile.
+  // Private protocols are never shown to other users, even followers.
+  final bool isPublic = protocol['is_public'] == true;
+  if (!viewModel.isMe && !isPublic) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${viewModel.profile?.username ?? 'This user'}\'s workout plan is private.',
+        ),
+        backgroundColor: const Color(0xFF2A2A2A),
+      ),
+    );
+    return;
+  }
+
+  // All checks passed — navigate
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ProtocolDetailView(protocolData: protocol),
+    ),
+  );
+}
 
   Widget _actionButton({
     required String text,
