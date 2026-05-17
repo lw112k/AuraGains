@@ -35,8 +35,8 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
   List<dynamic> _targetMuscles = [];
 
   // Filter State
-  String _selectedMuscleName = "All Muscles";
-  int? _selectedMuscleId; // Null means 'All'
+  String _selectedMuscleName = "All Muscles";// Null means 'All'
+  dynamic _selectedMuscleId;
 
   @override
   void initState() {
@@ -44,8 +44,7 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
     _fetchDatabaseData();
   }
 
-  // 👇 FETCH DATA FROM SUPABASE 👇
-  // 👇 FETCH DATA FROM SUPABASE 👇
+  //FETCH DATA FROM SUPABASE
   Future<void> _fetchDatabaseData() async {
     try {
       // 1. Fetch Target Muscles for the filter dropdown
@@ -59,8 +58,10 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
         user!training_protocol_create_by_fkey ( username ),
         protocol_workout (
           workout (
+            workout_id,
+            workout_name,
             workout_target_muscle (
-              target_muscle (*)
+              tar_musc_id
             )
           )
         )
@@ -86,36 +87,18 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
     }
   }
 
-  // 👇 HANDLE FILTERING 👇
-  void _applyFilter(int? muscleId, String muscleName) {
+
+  void _applyFilter(dynamic muscleId, String muscleName) {
     setState(() {
       _selectedMuscleId = muscleId;
       _selectedMuscleName = muscleName;
-
+  
       if (muscleId == null) {
-        // Reset to all
         _filteredProtocols = _protocols;
       } else {
-        // Filter based on the deeply nested junction tables
         _filteredProtocols = _protocols.where((protocol) {
-          final protocolWorkouts = protocol['protocol_workout'] as List<dynamic>? ?? [];
-          
-          // Loop through all workouts in this protocol
-          for (var pw in protocolWorkouts) {
-            final workout = pw['workout'];
-            if (workout != null) {
-              final targetMusclesPivot = workout['workout_target_muscle'] as List<dynamic>? ?? [];
-              
-              // Loop through all muscles targeted by this specific workout
-              for (var pivot in targetMusclesPivot) {
-                final targetMuscle = pivot['target_muscle'];
-                if (targetMuscle != null && targetMuscle['tar_musc_id'] == muscleId) {
-                  return true; // We found a match! Keep this protocol.
-                }
-              }
-            }
-          }
-          return false; // No matches found, hide this protocol.
+          final goal = protocol['goal']?.toString().toLowerCase() ?? '';
+          return goal.contains(muscleName.toLowerCase());
         }).toList();
       }
     });
@@ -181,10 +164,13 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
                               if (workout != null) {
                                 final pivots = workout['workout_target_muscle'] as List<dynamic>? ?? [];
                                 for (var pivot in pivots) {
-                                  final tm = pivot['target_muscle'];
-                                  if (tm != null) {
-                                    uniqueMuscles.add(tm['name']);
-                                  }
+                                  final tarMuscId = pivot['tar_musc_id'];  // ✅ flat ID
+                                  // Find the name from the already-fetched _targetMuscles list
+                                  final match = _targetMuscles.firstWhere(
+                                    (m) => m['tar_musc_id']?.toString() == tarMuscId?.toString(),
+                                    orElse: () => null,
+                                  );
+                                  if (match != null) uniqueMuscles.add(match['name']);
                                 }
                               }
                             }
@@ -222,7 +208,7 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
     );
   }
 
-  // 🌟 THE VISIBLE FILTER BUTTON 🌟
+
   Widget _buildProminentFilterButton() {
     return Material(
       color: Colors.transparent,
@@ -287,7 +273,6 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
     );
   }
 
-  // 🌟 THE PROTOCOL CARD (Copy Icon Removed) 🌟
   Widget _buildProtocolCard({
     required String title,
     required String author,
@@ -467,8 +452,8 @@ class _BrowseProtocolViewState extends State<BrowseProtocolView> {
     );
   }
 
-  Widget _buildFilterListTile(int? muscleId, String muscleName) {
-    final isSelected = muscleId == _selectedMuscleId;
+  Widget _buildFilterListTile(dynamic muscleId, String muscleName) {
+    final isSelected = muscleId?.toString() == _selectedMuscleId?.toString();
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24.0),
