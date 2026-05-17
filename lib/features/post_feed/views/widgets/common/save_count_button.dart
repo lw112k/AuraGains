@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class SaveButton extends StatelessWidget {
+class SaveCountButton extends StatelessWidget {
   final bool isSaved;
   final int saveCount;
   final Future<void> Function() onTap;
@@ -9,7 +9,7 @@ class SaveButton extends StatelessWidget {
   final double fontSize;
   final double gap;
 
-  const SaveButton({
+  const SaveCountButton({
     super.key,
     required this.isSaved,
     required this.saveCount,

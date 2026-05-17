@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class LikeButton extends StatelessWidget {
+class LikeCountButton extends StatelessWidget {
 
   final bool isLiked;
   final int likeCount;
@@ -10,7 +10,7 @@ class LikeButton extends StatelessWidget {
   final double fontSize;
   final double gap;
 
-  const LikeButton({
+  const LikeCountButton({
     super.key,
     required this.isLiked,
     required this.likeCount,

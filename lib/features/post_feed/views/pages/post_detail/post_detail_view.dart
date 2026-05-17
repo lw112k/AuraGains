@@ -12,8 +12,9 @@ import 'package:auragains/features/post_feed/models/post_detail_model.dart';
 import 'package:auragains/features/post_feed/view_models/post_detail/post_detail_viewmodel.dart';
 
 import 'package:auragains/features/post_feed/views/widgets/common/report_button.dart';
-import 'package:auragains/features/post_feed/views/widgets/common/like_button.dart';
-import 'package:auragains/features/post_feed/views/widgets/common/save_button.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/like_count_button.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/save_count_button.dart';
+import 'package:auragains/features/post_feed/views/widgets/common/comment_count_button.dart';
 
 
 class PostDetailView extends StatelessWidget {
@@ -58,7 +59,7 @@ class PostDetailView extends StatelessWidget {
           child: Row(
             children: [
 
-              LikeButton( // Like button
+              LikeCountButton( // Like button with total number
                 isLiked: post.isLiked,
                 likeCount: post.likeCount,
 
@@ -69,7 +70,7 @@ class PostDetailView extends StatelessWidget {
 
               const SizedBox(width: 24),
 
-              SaveButton( // Save button
+              SaveCountButton( // Save button with total number
                 isSaved: post.isSaved,
                 saveCount: post.totalSave,
 
@@ -80,19 +81,10 @@ class PostDetailView extends StatelessWidget {
 
               const SizedBox(width: 24),
 
-              const Icon( // COMMENT BUTTON
-                Icons.comment_outlined,
-                color: Colors.white,
-              ),
-
-              const SizedBox(width: 6),
-
-              Text(
-                '${post.totalComment}',
-
-                style: TextStyle(
-                  color: Colors.white,
-                ),
+              CommentCountButton( // Comment Button with total number
+                postId: post.postId,
+                currentUserId: vm.currentUserId,
+                commentCount: post.totalComment,
               ),
 
               const Spacer(),
@@ -253,12 +245,10 @@ class PostDetailView extends StatelessWidget {
                           children:
                               post.tagList.map((tag) {
 
-                            final isSystemTag =
-                                tag.tagType == 'system';
+                            final isSystemTag = tag.tagType == 'system';
 
                             return Container(
-                              padding:
-                                  const EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
                                 vertical: 7,
                               ),
@@ -268,10 +258,7 @@ class PostDetailView extends StatelessWidget {
                                     ? Colors.cyanAccent
                                     : Colors.grey.shade800,
 
-                                borderRadius:
-                                    BorderRadius.circular(
-                                  999,
-                                ),
+                                borderRadius: BorderRadius.circular(999)
                               ),
 
                               child: Text(

@@ -51,4 +51,26 @@ class LikeRepository {
       },
     );
   }
+
+  // ===================================
+  // UPDATE COMMENT LIKE
+  // ===================================
+  Future<void> updateCommentLike({
+    required int commentId,
+    required bool isLiked,
+    required int currentLikeCount,
+  }) async {
+
+    final newLikeCount =
+        isLiked
+            ? currentLikeCount + 1
+            : currentLikeCount - 1;
+
+    await _supabase
+        .from('comment')
+        .update({
+          'comment_like': newLikeCount < 0 ? 0 : newLikeCount,
+        })
+        .eq('comment_id', commentId);
+  }
 }

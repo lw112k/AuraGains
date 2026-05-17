@@ -6,10 +6,17 @@ class CommentModel {
   final String? profilePicUrl;
 
   final String text;
-  final int likeCount;
+  int likeCount;
+  int replyCount;
   final DateTime createDate;
 
   final int? parentId;
+
+  final List<CommentModel> replies;
+
+  bool repliesLoaded;
+  bool showReplies;
+  bool isLiked;
 
   CommentModel({
     required this.commentId,
@@ -19,21 +26,38 @@ class CommentModel {
     required this.profilePicUrl,
     required this.text,
     required this.likeCount,
+    required this.replyCount,
     required this.createDate,
     required this.parentId,
+    required this.replies,
+    this.repliesLoaded = false,
+    this.showReplies = false,
+    this.isLiked = false,
   });
 
   factory CommentModel.fromJson(Map<String, dynamic> json) {
+
     return CommentModel(
       commentId: json['comment_id'],
       postId: json['post_id'],
+
       userId: json['user_id'],
       username: json['username'],
       profilePicUrl: json['profile_pic_url'],
+
       text: json['text'],
+
       likeCount: json['comment_like'] ?? 0,
-      createDate: DateTime.parse(json['create_date']),
+      replyCount: json['reply_count'] ?? 0,
+
+      createDate: DateTime.parse('${json['create_date']}Z').toLocal(),
+
       parentId: json['parent_id'],
+
+      replies:
+          (json['replies'] as List<dynamic>? ?? [])
+              .map((e) => CommentModel.fromJson(e))
+              .toList()
     );
   }
 }
