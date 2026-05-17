@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 //--- Repositories ---
 import 'features/message/repositories/message_repository.dart';
-
+import 'features/workout_management/repositories/workout_repository.dart';
 // --- Services ---
 // The foundational layer. This interacts directly with external systems (Supabase).
 import 'core/services/database_connection.dart';
@@ -15,7 +15,7 @@ import 'core/services/database_connection.dart';
 // The "State" layer. This acts as the global broadcast station holding user data.
 import 'features/auth/view_models/auth_viewmodel.dart';
 import 'features/message/view_models/message_view_model.dart';
-
+import 'features/workout_management/view_models/workout_view_model.dart';
 // --- Views ---
 // The "UI" layer. These are the different screens the user can see.
 import 'core/widgets/splash_screen.dart';
@@ -79,6 +79,11 @@ void main() async {
           // Post Feature:
           // ChangeNotifierProvider(create: (_) => PostViewModel()),
           //
+
+          ChangeNotifierProvider(
+            create: (_) => WorkoutViewModel(repository: WorkoutRepository(),),
+          ),
+
           ChangeNotifierProvider(
             create: (_) => MessageViewModel(
               repository: MessageRepository(),
