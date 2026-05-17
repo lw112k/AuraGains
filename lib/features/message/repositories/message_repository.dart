@@ -205,4 +205,11 @@ class MessageRepository {
       rethrow;
     }
   }
+
+  Stream<void> streamUserConversationUpdates(String userId) {
+  return _supabase
+      .from('message')
+      .stream(primaryKey: ['message_id'])
+      .map((_) => null); // We just need the trigger, not the data
+  }
 }

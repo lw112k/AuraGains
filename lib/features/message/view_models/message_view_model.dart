@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../repositories/message_repository.dart';
 import '../models/message_model.dart';
-
+import 'dart:async';
 class MessageViewModel extends ChangeNotifier {
   final MessageRepository _repository;
   final String currentUserId;
-
+  StreamSubscription? _conversationUpdateSub;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -49,6 +49,21 @@ class MessageViewModel extends ChangeNotifier {
   MessageViewModel({required MessageRepository repository, required this.currentUserId})
       : _repository = repository {
     loadConversations();
+    _subscribeToConversationUpdates();
+  }
+
+  void _subscribeToConversationUpdates() {
+    _conversationUpdateSub = _repository
+        .streamUserConversationUpdates(currentUserId)
+        .listen((_) {
+      loadConversations(); // Re-fetch the enriched list on any change
+    });
+  }
+
+  @override
+  void dispose() {
+    _conversationUpdateSub?.cancel();
+    super.dispose();
   }
 
   /// Fetches the list of conversations for the wireframe screen
@@ -93,5 +108,12 @@ class MessageViewModel extends ChangeNotifier {
   /// Marks a specific chat as read in the database
   Future<void> markAsRead(String conversationId) async {
     await _repository.markConversationAsRead(conversationId, currentUserId);
+  }
+
+  void clearData() {
+    _conversationUpdateSub?.cancel(); 
+    _searchResults.clear();
+    _isSearching = false;
+    notifyListeners();
   }
 }
