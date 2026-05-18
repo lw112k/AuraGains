@@ -262,6 +262,33 @@ class AdminApplicationModel {
       );
 }
 
+class AdminCommentModel {
+  final int commentId;
+  final int? postId;
+  final String? userId;
+  final String? content;
+  final DateTime? createDate;
+
+  const AdminCommentModel({
+    required this.commentId,
+    this.postId,
+    this.userId,
+    this.content,
+    this.createDate,
+  });
+
+  factory AdminCommentModel.fromJson(Map<String, dynamic> json) {
+    return AdminCommentModel(
+      commentId: _toInt(json['comment_id']) ??
+          (throw ArgumentError('Missing required field: comment_id')),
+      postId: _toInt(json['post_id']),
+      userId: _toStr(json['user_id']),
+      content: json['content'] as String?,
+      createDate: _toDate(json['create_date']),
+    );
+  }
+}
+
 class AdminDashboardStats {
   final int totalUsers;
   final int bannedUsers;

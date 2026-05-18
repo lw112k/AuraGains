@@ -105,7 +105,7 @@ class AdminReportCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(
                 children: [
-                  if (report.postId != null)
+                  if (report.postId != null || report.targetType == 'comment')
                     Expanded(
                       child: TextButton.icon(
                         onPressed: onViewContent,

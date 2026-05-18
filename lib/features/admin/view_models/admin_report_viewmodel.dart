@@ -46,13 +46,13 @@ class AdminReportViewModel extends ChangeNotifier {
 
   // ─── Actions ─────────────────────────────────────────────────────────
 
-  /// Approve report → delete the flagged post, keep the report row, stamp [APPROVED].
+  /// Approve report → repo deletes the flagged post + all related reports, then refresh.
   Future<bool> approveReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.approveReport(reportId); // deletes post, stamps [APPROVED]
-      await loadReports(); // reload so updated reason is reflected
+      await _repo.approveReport(reportId); // deletes post + all related reports
+      await loadReports();
       return true;
     } catch (e) {
       errorMessage = 'Failed to approve report: $e';
@@ -63,13 +63,13 @@ class AdminReportViewModel extends ChangeNotifier {
     }
   }
 
-  /// Dismiss report → keep the post, keep the report row, stamp [DISMISSED].
+  /// Dismiss report → repo deletes the single report row, post stays intact.
   Future<bool> rejectReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.rejectReport(reportId); // stamps [DISMISSED]
-      await loadReports(); // reload so updated reason is reflected
+      await _repo.rejectReport(reportId); // deletes the report row
+      await loadReports();
       return true;
     } catch (e) {
       errorMessage = 'Failed to dismiss report: $e';
@@ -126,6 +126,25 @@ class AdminReportViewModel extends ChangeNotifier {
   void setStatusFilter(String? filter) {
     statusFilter = filter;
     notifyListeners();
+  }
+
+  /// Resolve the parent post ID for a report, regardless of target type.
+  /// For post reports, returns the post ID directly.
+  /// For comment reports, fetches the comment to find the parent post ID.
+  Future<int?> resolveParentPostIdForReport(int reportId) async {
+    try {
+      final report = await _repo.fetchReportById(reportId);
+      if (report == null) return null;
+      if (report.targetType == 'post') {
+        return report.targetId;
+      } else if (report.targetType == 'comment' && report.targetId != null) {
+        return await _repo.fetchParentPostIdForComment(report.targetId!);
+      }
+      return null;
+    } catch (e) {
+      errorMessage = 'Failed to resolve parent post: $e';
+      return null;
+    }
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────

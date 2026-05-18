@@ -290,7 +290,6 @@ class _UserTile extends StatelessWidget {
                               title: const Text('Change Role'),
                               children: [
                                 SimpleDialogOption(child: const Text('User'), onPressed: () => Navigator.pop(ctx, 'user')),
-                                SimpleDialogOption(child: const Text('Expert'), onPressed: () => Navigator.pop(ctx, 'expert')),
                                 SimpleDialogOption(child: const Text('Admin'), onPressed: () => Navigator.pop(ctx, 'admin')),
                                 SimpleDialogOption(child: const Text('Cancel'), onPressed: () => Navigator.pop(ctx, null)),
                               ],

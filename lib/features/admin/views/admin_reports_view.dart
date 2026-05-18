@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/admin_model.dart';
 import '../view_models/admin_report_viewmodel.dart';
 import '../view_models/admin_viewmodel.dart';
 import '../widgets/admin_report_card.dart';
@@ -92,9 +93,9 @@ class _ReportsShellState extends State<_ReportsShell> {
                                   _onApprove(ctx, vm, report.reportId),
                               onDismiss: () =>
                                   _onReject(ctx, vm, report.reportId),
-                              onViewContent: report.postId != null
+                              onViewContent: (report.postId != null || report.targetType == 'comment')
                                   ? () => _viewContent(
-                                      ctx, report.postId!, report.reportId, vm)
+                                      ctx, vm, report)
                                   : null,
                             );
                           },
@@ -139,24 +140,46 @@ class _ReportsShellState extends State<_ReportsShell> {
     }
   }
 
-  void _viewContent(
+  Future<void> _viewContent(
     BuildContext context,
-    int postId,
-    int reportId,
     AdminReportViewModel vm,
-  ) {
+    AdminReportModel report,
+  ) async {
+    // Resolve the parent post ID — for post reports it's targetId,
+    // for comment reports we fetch the comment's post_id.
+    final postId = report.targetType == 'comment'
+        ? await vm.resolveParentPostIdForReport(report.reportId)
+        : report.targetId;
+
+    if (postId == null) {
+      if (report.targetType == 'comment' && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not find the parent post for this comment.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
     final adminVm = context.read<AdminViewModel>();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    if (!context.mounted) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => ChangeNotifierProvider<AdminViewModel>.value(
           value: adminVm,
           child: AdminContentDetailView(
             postId: postId,
-            reportId: reportId,
+            reportId: report.reportId,
           ),
         ),
       ),
     );
+    // If an action was taken in content detail, refresh this VM's report list too
+    if (changed == true && context.mounted) {
+      vm.loadReports();
+    }
   }
 }
 

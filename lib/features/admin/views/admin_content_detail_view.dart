@@ -76,6 +76,10 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
           final author = vm.detailPostAuthor;
           final report = vm.detailReport;
           final mediaUrls = vm.detailMediaUrls;
+          final comment = vm.detailComment;
+
+          // Determine whether this is a comment report
+          final isCommentReport = comment != null;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -102,6 +106,12 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                       ),
                       const SizedBox(height: 4),
                       Text(
+                        'Target: ${report.targetType ?? 'unknown'}',
+                        style:
+                          TextStyle(color: AppTheme.muted, fontSize: 11),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
                         'Reported ${_fmtDate(report.createDate)}',
                         style:
                           TextStyle(color: AppTheme.muted, fontSize: 11),
@@ -110,6 +120,86 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                   ),
                 ),
                 const SizedBox(height: 20),
+              ],
+
+              // ─ Comment info (for comment reports) ────
+              if (isCommentReport) ...[
+                _SectionLabel('COMMENT'),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.card,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppTheme.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Comment author (from the post author context)
+                      if (author != null)
+                        Row(
+                          children: [
+                            _SmallAvatar(
+                                url: author.profilePicUrl,
+                                name: author.username),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  author.username,
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14),
+                                ),
+                                Text(
+                                  author.email,
+                                  style: TextStyle(
+                                    color: AppTheme.muted, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      if (author != null) const SizedBox(height: 12),
+                      // Comment content
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.backgroundDark,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          comment.content ?? '(no content)',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                      if (comment.createDate != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          _fmtDate(comment.createDate),
+                          style: const TextStyle(
+                            color: AppTheme.muted, fontSize: 11),
+                        ),
+                      ],
+                      // Post reference
+                      const SizedBox(height: 8),
+                      Text(
+                        'On post: ${post.title}',
+                        style: const TextStyle(
+                          color: AppTheme.muted, fontSize: 12,
+                          fontStyle: FontStyle.italic),
+                      ),
+                    ],
+                  ),
+                ),
               ],
 
               // ─ Post info ──────────────────────────────
@@ -231,8 +321,10 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
                 _SectionLabel('ACTIONS'),
                 const SizedBox(height: 10),
                 _ActionButtons(
-                  postId: widget.postId,
+                  targetType: isCommentReport ? 'comment' : 'post',
+                  targetId: isCommentReport ? comment.commentId : widget.postId,
                   reportId: widget.reportId!,
+                  authorUserId: vm.detailPostAuthor?.userId,
                   isActionLoading: vm.isActionLoading,
                 ),
               ],
@@ -249,14 +341,20 @@ class _AdminContentDetailViewState extends State<AdminContentDetailView> {
 // ─── Action buttons ───────────────────────────────────────────────────────────
 class _ActionButtons extends StatelessWidget {
   const _ActionButtons({
-    required this.postId,
+    required this.targetType,
+    required this.targetId,
     required this.reportId,
+    this.authorUserId,
     required this.isActionLoading,
   });
 
-  final int postId;
+  final String targetType; // 'post' or 'comment'
+  final int targetId;
   final int reportId;
+  final String? authorUserId;
   final bool isActionLoading;
+
+  bool get _isComment => targetType == 'comment';
 
   @override
   Widget build(BuildContext context) {
@@ -269,11 +367,26 @@ class _ActionButtons extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         FilledButton.icon(
-          onPressed: () => _onApproveAndDelete(context, vm),
-          icon: const Icon(Icons.check_circle_rounded),
-          label: const Text('Approve & Delete'),
-            style: FilledButton.styleFrom(
+          onPressed: () => _onDeleteTarget(context, vm),
+          icon: const Icon(Icons.delete_rounded),
+          label: Text(_isComment ? 'Delete Comment' : 'Delete Post'),
+          style: FilledButton.styleFrom(
             backgroundColor: Colors.redAccent.withOpacity(0.15),
+            foregroundColor: Colors.redAccent,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          onPressed: (authorUserId != null)
+              ? () => _onDeleteTargetAndBan(context, vm)
+              : null,
+          icon: const Icon(Icons.gavel_rounded),
+          label: Text(_isComment
+              ? 'Delete Comment & Ban User'
+              : 'Delete Post & Ban User'),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.redAccent.withOpacity(0.25),
             foregroundColor: Colors.redAccent,
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
@@ -292,16 +405,19 @@ class _ActionButtons extends StatelessWidget {
     );
   }
 
-  Future<void> _onApproveAndDelete(
+  Future<void> _onDeleteTarget(
       BuildContext context, AdminViewModel vm) async {
+    final label = _isComment ? 'Comment' : 'Post';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppTheme.card,
-        title: const Text('Approve & Delete?',
-            style: TextStyle(color: Colors.white)),
+        title: Text('Delete $label?',
+            style: const TextStyle(color: Colors.white)),
         content: Text(
-          'This permanently deletes the post and all related reports.',
+          _isComment
+              ? 'This permanently deletes the comment and all related reports. The author is NOT banned.'
+              : 'This permanently deletes the post and all related reports. The author is NOT banned.',
           style: TextStyle(color: AppTheme.muted),
         ),
         actions: [
@@ -312,27 +428,103 @@ class _ActionButtons extends StatelessWidget {
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Approve & Delete'),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
     if (confirmed != true || !context.mounted) return;
 
-    final ok = await vm.deletePost(postId, reportId);
+    final ok = _isComment
+        ? await vm.deleteComment(targetId, reportId)
+        : await vm.deletePost(targetId, reportId);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              ok ? 'Post and reports deleted.' : (vm.errorMessage ?? 'Error')),
+              ok ? '$label and reports deleted.' : (vm.errorMessage ?? 'Error')),
           backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
-      if (ok) Navigator.of(context).pop();
+      if (ok) Navigator.of(context).pop(true);
+    }
+  }
+
+  Future<void> _onDeleteTargetAndBan(
+      BuildContext context, AdminViewModel vm) async {
+    if (authorUserId == null) return;
+    final label = _isComment ? 'Comment' : 'Post';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: Text('Delete $label & Ban User?',
+            style: const TextStyle(color: Colors.white)),
+        content: Text(
+          _isComment
+              ? 'This permanently deletes the comment, all related reports, AND bans the user.'
+              : 'This permanently deletes the post, all related reports, AND bans the user.',
+          style: TextStyle(color: AppTheme.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.muted)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Delete & Ban'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final ok = _isComment
+        ? await vm.deleteCommentAndBanUser(targetId, reportId, authorUserId!)
+        : await vm.deletePostAndBanUser(targetId, reportId, authorUserId!);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              ok ? '$label, reports deleted. User banned.' : (vm.errorMessage ?? 'Error')),
+          backgroundColor: ok ? AppTheme.card : Colors.redAccent,
+        ),
+      );
+      if (ok) Navigator.of(context).pop(true);
     }
   }
 
   Future<void> _onDismiss(BuildContext context, AdminViewModel vm) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppTheme.card,
+        title: const Text('Dismiss Report?',
+            style: TextStyle(color: Colors.white)),
+        content: Text(
+          'The report will be removed. The post and user are kept intact.',
+          style: TextStyle(color: AppTheme.muted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.muted)),
+          ),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(color: AppTheme.border),
+            ),
+            child: const Text('Dismiss'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
     final ok = await vm.dismissReport(reportId);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +533,7 @@ class _ActionButtons extends StatelessWidget {
           backgroundColor: ok ? AppTheme.card : Colors.redAccent,
         ),
       );
-      if (ok) Navigator.of(context).pop();
+      if (ok) Navigator.of(context).pop(true);
     }
   }
 }

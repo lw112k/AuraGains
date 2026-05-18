@@ -104,11 +104,16 @@ class AdminViewModel extends ChangeNotifier {
         .toList();
   }
 
+  /// Resolve the parent post ID for a comment (used by dashboard/reports navigation).
+  Future<int?> resolveParentPostIdFromRepo(int commentId) =>
+      _repo.fetchParentPostIdForComment(commentId);
+
   // ─── Content detail ──────────────────────────────────────────────────
   AdminPostModel? detailPost;
   AdminUserModel? detailPostAuthor;
   AdminReportModel? detailReport;
   AdminUserModel? detailReporter;
+  AdminCommentModel? detailComment;
   List<String> detailMediaUrls = [];
 
   // ─── Application detail ──────────────────────────────────────────────
@@ -173,6 +178,8 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   Future<void> loadContentDetail(int postId, int? reportId) async {
+    // Reset stale state from previous navigation
+    detailComment = null;
     _setLoading(true);
     try {
       detailPost = await _repo.fetchPost(postId);
@@ -189,6 +196,11 @@ class AdminViewModel extends ChangeNotifier {
         if (detailReport?.reportBy != null &&
             detailReport!.reportBy!.isNotEmpty) {
           detailReporter = await _repo.fetchUser(detailReport!.reportBy!);
+        }
+        // Load comment if report targets a comment
+        if (detailReport?.targetType == 'comment' &&
+            detailReport?.targetId != null) {
+          detailComment = await _repo.fetchComment(detailReport!.targetId!);
         }
       }
       errorMessage = null;
@@ -271,6 +283,14 @@ class AdminViewModel extends ChangeNotifier {
     _isActionLoading = true;
     notifyListeners();
     try {
+      if (role.toLowerCase() == 'expert') {
+        // Expert status is determined by expert_application approval, not system_role.
+        await _repo.approveExpertForUser(userId);
+        _allUsers = _allUsers
+          .map((u) =>
+            u.userId == userId ? _copyUserWith(u, systemRole: 'expert') : u)
+          .toList();
+      } else {
         // Normalize UI label to DB token before persisting.
         final dbToken = _dbTokenForLabel(role);
         await _repo.setSystemRole(userId, dbToken);
@@ -278,6 +298,7 @@ class AdminViewModel extends ChangeNotifier {
           .map((u) =>
             u.userId == userId ? _copyUserWith(u, systemRole: dbToken) : u)
           .toList();
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to update role: $e';
@@ -288,18 +309,12 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Approve report → delete the flagged post, keep the report row, stamp [APPROVED].
+  /// Approve report → repo deletes the flagged post + all related reports, then refresh.
   Future<bool> approveReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      // Stamp [APPROVED] first, then try to delete the flagged post.
-      await _repo.approveReport(reportId);
-      final postId = _findPostIdForReport(reportId);
-      if (postId != null) {
-        await _repo.deletePost(postId);
-      }
-      // Refresh all report lists so every view sees fresh data.
+      await _repo.approveReport(reportId); // deletes post + all related reports
       await loadReports();
       stats = await _repo.fetchDashboardStats();
       recentReports = await _repo.fetchReports(status: 'pending');
@@ -316,13 +331,13 @@ class AdminViewModel extends ChangeNotifier {
     }
   }
 
-  /// Dismiss report → keep the post, keep the report row, stamp [DISMISSED].
+  /// Dismiss report → repo deletes the single report row, post stays intact.
   Future<bool> dismissReport(int reportId) async {
     _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.rejectReport(reportId);
-      await loadReports();
+      await _repo.rejectReport(reportId); // deletes the report row
+      _removeReportById(reportId);
       stats = await _repo.fetchDashboardStats();
       recentReports = await _repo.fetchReports(status: 'pending');
       if (recentReports.length > 5) {
@@ -350,6 +365,63 @@ class AdminViewModel extends ChangeNotifier {
       return true;
     } catch (e) {
       errorMessage = 'Failed to delete post: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete post + all its reports + ban the author (used by ContentDetailView).
+  Future<bool> deletePostAndBanUser(int postId, int reportId, String userId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deletePost(postId);
+      await _repo.deleteReportsByPostId(postId);
+      await _repo.banUser(userId);
+      _removeReportsByPostId(postId);
+      detailPost = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete post and ban user: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete comment + all its reports (used by ContentDetailView for comment reports).
+  Future<bool> deleteComment(int commentId, int reportId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deleteComment(commentId);
+      await _repo.deleteReportsByCommentId(commentId);
+      detailComment = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete comment: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete comment + all its reports + ban the author (used by ContentDetailView for comment reports).
+  Future<bool> deleteCommentAndBanUser(int commentId, int reportId, String userId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deleteComment(commentId);
+      await _repo.deleteReportsByCommentId(commentId);
+      await _repo.banUser(userId);
+      detailComment = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete comment and ban user: $e';
       return false;
     } finally {
       _isActionLoading = false;
@@ -390,17 +462,6 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────
-
-  /// Find the postId for a report using local state.
-  int? _findPostIdForReport(int reportId) {
-    for (final r in _allReports) {
-      if (r.reportId == reportId) return r.postId;
-    }
-    for (final r in recentReports) {
-      if (r.reportId == reportId) return r.postId;
-    }
-    return null;
-  }
 
   /// Remove a single report from both local lists.
   void _removeReportById(int reportId) {

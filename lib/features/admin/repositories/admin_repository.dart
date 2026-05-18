@@ -60,6 +60,8 @@ class AdminRepository {
           cols = {'post_id', 'post_by', 'create_date', 'post_like', 'title', 'description', 'thumbnail_url', 'post_type', 'visibility'};
         } else if (table == 'post_media') {
           cols = {'media_id', 'post_id', 'media_url', 'media_type', 'display_order'};
+        } else if (table == 'comment') {
+          cols = {'comment_id', 'post_id', 'user_id', 'text', 'create_date'};
         } else if (table == 'expert_application_image') {
           cols = {'expert_application_image_id', 'expert_application_id', 'image_url'};
         }
@@ -285,37 +287,27 @@ class AdminRepository {
   }
 
   Future<void> approveReport(int reportId) async {
-    // Stamp [APPROVED] on the reason column — AdminReportModel.deriveStatus
-    // reads status from the reason prefix, not from a separate status column.
-    final current = await _db
+    // Find the target post and delete it along with all related reports.
+    final data = await _db
         .from('report')
-        .select('reason')
+        .select('target_id, target_type')
         .eq('report_id', reportId)
         .maybeSingle();
-    final originalReason = (current?['reason'] as String? ?? '');
-    if (!originalReason.startsWith('[APPROVED]') &&
-        !originalReason.startsWith('[DISMISSED]')) {
-      await _db
-          .from('report')
-          .update({'reason': '[APPROVED] $originalReason'})
-          .eq('report_id', reportId);
+    if (data != null && (data['target_type'] as String?) == 'post') {
+      final postId = data['target_id'] as int?;
+      if (postId != null) {
+        await deletePost(postId);
+        await deleteReportsByPostId(postId);
+      }
     }
   }
 
   Future<void> rejectReport(int reportId) async {
-    final current = await _db
+    // Simply delete the report row — no stamping, post stays intact.
+    await _db
         .from('report')
-        .select('reason')
-        .eq('report_id', reportId)
-        .maybeSingle();
-    final originalReason = (current?['reason'] as String? ?? '');
-    if (!originalReason.startsWith('[APPROVED]') &&
-        !originalReason.startsWith('[DISMISSED]')) {
-      await _db
-          .from('report')
-          .update({'reason': '[DISMISSED] $originalReason'})
-          .eq('report_id', reportId);
-    }
+        .delete()
+        .eq('report_id', reportId);
   }
 
   Future<AdminReportModel?> fetchReportById(int reportId) async {
@@ -421,6 +413,58 @@ class AdminRepository {
     }
   }
 
+  // ─── Comments ────────────────────────────────────────────────────────
+
+  Future<AdminCommentModel?> fetchComment(int commentId) async {
+    final cols = await _ensureTableColumns('comment');
+    // DB column is named "text", not "content" — map it at fetch time.
+    final wanted = <String>['comment_id', 'post_id', 'user_id', 'create_date'];
+    if (cols.contains('content')) {
+      wanted.add('content');
+    } else if (cols.contains('text')) {
+      wanted.add('text');
+    }
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('comment_id');
+    final data = await _db
+        .from('comment')
+        .select(fields.join(', '))
+        .eq('comment_id', commentId)
+        .maybeSingle();
+    if (data == null) return null;
+    // Remap DB "text" -> model "content"
+    if (data.containsKey('text') && data['content'] == null) {
+      data['content'] = data['text'];
+    }
+    return AdminCommentModel.fromJson(data);
+  }
+
+  Future<void> deleteComment(int commentId) async {
+    try {
+      await _db.from('comment').delete().eq('comment_id', commentId);
+    } catch (_) {}
+  }
+
+  /// Delete all reports that reference a given comment ID.
+  Future<void> deleteReportsByCommentId(int commentId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('target_type', 'comment')
+        .eq('target_id', commentId);
+  }
+
+  /// Find the parent post ID for a comment (used for comment report navigation).
+  Future<int?> fetchParentPostIdForComment(int commentId) async {
+    final data = await _db
+        .from('comment')
+        .select('post_id')
+        .eq('comment_id', commentId)
+        .maybeSingle();
+    if (data == null) return null;
+    return data['post_id'] as int?;
+  }
+
   // ─── Expert Applications ─────────────────────────────────────────────
 
   Future<List<AdminApplicationModel>> fetchApplications() async {
@@ -503,6 +547,36 @@ class AdminRepository {
     return result;
   }
 
+  /// Approve expert status for a user via expert_application table.
+  /// If no application exists, creates a minimal one and approves it.
+  Future<void> approveExpertForUser(String userId) async {
+    final appCols = await _ensureTableColumns('expert_application');
+    if (!appCols.contains('application_status')) return;
+
+    // Check for existing application
+    final existing = await _db
+        .from('expert_application')
+        .select('expert_application_id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    if (existing != null) {
+      await _db
+          .from('expert_application')
+          .update({'application_status': 'approved'})
+          .eq('expert_application_id', existing['expert_application_id']);
+    } else {
+      // Create a minimal approved application
+      await _db.from('expert_application').insert({
+        'user_id': userId,
+        'application_status': 'approved',
+        'expert_title': 'Expert',
+        if (appCols.contains('experience_year')) 'experience_year': 0,
+        if (appCols.contains('experience_description')) 'experience_description': '',
+      });
+    }
+  }
+
   Future<void> approveApplication(String applicationId, String userId) async {
     final appCols = await _ensureTableColumns('expert_application');
     if (appCols.contains('application_status')) {
@@ -511,15 +585,8 @@ class AdminRepository {
           .update({'application_status': 'approved'})
           .eq('expert_application_id', applicationId);
     }
-    // Also promote the user's system_role to 'expert'.
-    // REQUIRES: ALTER TYPE user_role_type_enum ADD VALUE 'expert'; in Supabase SQL editor.
-    final userCols = await _ensureTableColumns('user');
-    if (userCols.contains('system_role')) {
-      await _db
-          .from('user')
-          .update({'system_role': 'expert'})
-          .eq('user_id', userId);
-    }
+    // Note: system_role is NOT updated here. Expert status is determined by
+    // the expert_application.application_status = 'approved' flag alone.
   }
 
   Future<void> rejectApplication(String applicationId) async {

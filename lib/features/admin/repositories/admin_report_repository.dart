@@ -130,41 +130,20 @@ class AdminReportRepository {
   }
 
   Future<void> approveReport(int reportId) async {
-    // 1. Delete the post
+    // Delete the flagged post and all reports targeting it.
     final postId = await _getPostIdForReport(reportId);
     if (postId != null) {
       await deletePost(postId);
-    }
-    // 2. Stamp the reason field
-    final current = await _db
-        .from('report')
-        .select('reason')
-        .eq('report_id', reportId)
-        .maybeSingle();
-    final originalReason = (current?['reason'] as String? ?? '');
-    if (!originalReason.startsWith('[APPROVED]') &&
-        !originalReason.startsWith('[DISMISSED]')) {
-      await _db
-          .from('report')
-          .update({'reason': '[APPROVED] $originalReason'})
-          .eq('report_id', reportId);
+      await deleteReportsByPostId(postId);
     }
   }
 
   Future<void> rejectReport(int reportId) async {
-    final current = await _db
+    // Simply delete the report row — no stamping, post stays intact.
+    await _db
         .from('report')
-        .select('reason')
-        .eq('report_id', reportId)
-        .maybeSingle();
-    final originalReason = (current?['reason'] as String? ?? '');
-    if (!originalReason.startsWith('[APPROVED]') &&
-        !originalReason.startsWith('[DISMISSED]')) {
-      await _db
-          .from('report')
-          .update({'reason': '[DISMISSED] $originalReason'})
-          .eq('report_id', reportId);
-    }
+        .delete()
+        .eq('report_id', reportId);
   }
 
   Future<int?> _getPostIdForReport(int reportId) async {
@@ -241,6 +220,48 @@ class AdminReportRepository {
     try {
       await _db.from('post').delete().eq('post_id', postId);
     } catch (_) {}
+  }
+
+  // ─── Comments ────────────────────────────────────────────────────────
+
+  Future<AdminCommentModel?> fetchComment(int commentId) async {
+    final cols = await _ensureTableColumns('comment');
+    final wanted = ['comment_id', 'post_id', 'user_id', 'content', 'create_date'];
+    final fields = wanted.where((f) => cols.contains(f)).toList();
+    if (fields.isEmpty) fields.add('comment_id');
+    final data = await _db
+        .from('comment')
+        .select(fields.join(', '))
+        .eq('comment_id', commentId)
+        .maybeSingle();
+    if (data == null) return null;
+    return AdminCommentModel.fromJson(data);
+  }
+
+  Future<void> deleteComment(int commentId) async {
+    try {
+      await _db.from('comment').delete().eq('comment_id', commentId);
+    } catch (_) {}
+  }
+
+  /// Delete all reports that reference a given comment ID.
+  Future<void> deleteReportsByCommentId(int commentId) async {
+    await _db
+        .from('report')
+        .delete()
+        .eq('target_type', 'comment')
+        .eq('target_id', commentId);
+  }
+
+  /// Find the parent post ID for a comment (used for comment report navigation).
+  Future<int?> fetchParentPostIdForComment(int commentId) async {
+    final data = await _db
+        .from('comment')
+        .select('post_id')
+        .eq('comment_id', commentId)
+        .maybeSingle();
+    if (data == null) return null;
+    return data['post_id'] as int?;
   }
 
   // ─── Users (for reporter info) ─────────────────────────────────────
