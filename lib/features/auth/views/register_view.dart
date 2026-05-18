@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../view_models/auth_viewmodel.dart';
+import '../../message/view_models/message_view_model.dart';
 
 // =========================================================
 // REGISTER VIEW
@@ -85,28 +86,32 @@ class _RegisterViewState extends State<RegisterView> {
               backgroundColor: _errorColor,
             ),
           );
-        } else {          
+        } else {
           // Grab the newly created User ID from Supabase
           final userId = Supabase.instance.client.auth.currentUser?.id;
-          
+
           if (userId != null) {
+            // Prep the chat system for the brand new user!
+            context.read<MessageViewModel>().loadConversations(userId);
+
             // Initialize the Repository and ViewModel for Onboarding
             final onboardingRepository = OnboardingRepository();
             final onboardingViewModel = OnboardingViewModel(
               repository: onboardingRepository,
-              currentUserId: userId, 
+              currentUserId: userId,
             );
 
-              // Push to Onboarding view and remove the Register screen from the backstack
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OnboardingView(viewModel: onboardingViewModel),
+            // Push to Onboarding view and remove the Register screen from the backstack
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    OnboardingView(viewModel: onboardingViewModel),
               ),
             );
           } else {
             // Fallback in case Supabase hasn't updated the current user state yet
-            Navigator.pop(context); 
+            Navigator.pop(context);
           }
         }
       }

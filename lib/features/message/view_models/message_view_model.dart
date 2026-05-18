@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import '../repositories/message_repository.dart';
 import '../models/message_model.dart';
 import 'dart:async';
+
 class MessageViewModel extends ChangeNotifier {
   final MessageRepository _repository;
-  final String currentUserId;
+  String currentUserId;
   StreamSubscription? _conversationUpdateSub;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -30,7 +31,7 @@ class MessageViewModel extends ChangeNotifier {
     notifyListeners();
 
     _searchResults = await _repository.searchUsers(query.trim());
-    
+
     notifyListeners();
   }
 
@@ -45,9 +46,10 @@ class MessageViewModel extends ChangeNotifier {
     }
   }
 
-
-  MessageViewModel({required MessageRepository repository, required this.currentUserId})
-      : _repository = repository {
+  MessageViewModel({
+    required MessageRepository repository,
+    required this.currentUserId,
+  }) : _repository = repository {
     loadConversations();
     _subscribeToConversationUpdates();
   }
@@ -56,8 +58,8 @@ class MessageViewModel extends ChangeNotifier {
     _conversationUpdateSub = _repository
         .streamUserConversationUpdates(currentUserId)
         .listen((_) {
-      loadConversations(); // Re-fetch the enriched list on any change
-    });
+          loadConversations(); // Re-fetch the enriched list on any change
+        });
   }
 
   @override
@@ -67,8 +69,16 @@ class MessageViewModel extends ChangeNotifier {
   }
 
   /// Fetches the list of conversations for the wireframe screen
-  Future<void> loadConversations() async {
+  Future<void> loadConversations([String? newUserId]) async {
     _isLoading = true;
+
+    // Update the ID only if a new one was actually provided (like during login)
+    if (newUserId != null) {
+      currentUserId = newUserId;
+    }
+
+    // Empty out the old chats so the screen goes blank while loading
+    _conversations.clear();
     notifyListeners();
 
     try {
@@ -104,14 +114,14 @@ class MessageViewModel extends ChangeNotifier {
     }
   }
 
-
   /// Marks a specific chat as read in the database
   Future<void> markAsRead(String conversationId) async {
     await _repository.markConversationAsRead(conversationId, currentUserId);
   }
 
   void clearData() {
-    _conversationUpdateSub?.cancel(); 
+    _conversationUpdateSub?.cancel();
+    _conversations.clear();
     _searchResults.clear();
     _isSearching = false;
     notifyListeners();

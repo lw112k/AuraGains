@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/auth_viewmodel.dart';
 import 'register_view.dart';
+import '../../message/view_models/message_view_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // =========================================================
 // LOGIN VIEW (Handles both Splash & Login States)
@@ -89,6 +91,13 @@ class _LoginState extends State<LoginView> {
               backgroundColor: _errorColor,
             ),
           );
+        } else {
+          final newUserId = Supabase.instance.client.auth.currentUser?.id;
+
+          if (newUserId != null) {
+          // 2. Pass it into our newly updated method
+          context.read<MessageViewModel>().loadConversations(newUserId);
+        }
         }
       }
     }

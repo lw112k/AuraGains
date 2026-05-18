@@ -27,10 +27,34 @@ class AuthRepository {
 
   /// Standard Supabase Login (Using supabase api)
   Future<AuthResponse> signIn(String email, String password) async {
-    return await _supabase.auth.signInWithPassword(
+    // 1. Authenticate the user credentials normally
+    final response = await _supabase.auth.signInWithPassword(
       email: email,
       password: password,
     );
+
+    final user = response.user;
+    
+    if (user != null) {
+      // 2. The Bouncer: Check the 'user' table for the ban status
+      final userData = await _supabase
+          .from('user')
+          .select('is_banned')
+          .eq('user_id', user.id)
+          .single();
+
+      final isBanned = userData['is_banned'] as bool? ?? false;
+
+      // 3. If they are banned, revoke their session immediately
+      if (isBanned) {
+        await _supabase.auth.signOut();
+        // Throw a specific error so the ViewModel knows exactly what happened
+        throw Exception('BANNED_USER'); 
+      }
+    }
+
+    // 4. If they are NOT banned, return the successful response
+    return response;
   }
 
   /// Register
