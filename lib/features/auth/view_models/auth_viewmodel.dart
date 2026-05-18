@@ -46,7 +46,7 @@ class AuthViewModel extends ChangeNotifier {
 
   /// Login Logic
   Future<bool> login({required String email, required String password}) async {
-    // andle loading locally on the Login button!
+    // handle loading locally on the Login button!
     _setError(null);
 
     try {
@@ -64,7 +64,13 @@ class AuthViewModel extends ChangeNotifier {
     } on AuthException catch (e) {
       _setError(e.message);
     } catch (e) {
-      _setError("An unexpected error occurred.");
+      if (e.toString().contains('BANNED_USER')) {
+        _setError(
+          "Your account has been suspended for violating community guidelines.",
+        );
+      } else {
+        _setError("An unexpected error occurred.");
+      }
     }
 
     return false;

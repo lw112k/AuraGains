@@ -1,4 +1,3 @@
-
 import 'package:auragains/features/message/views/message_view.dart';
 import 'package:auragains/features/workout_management/views/workout_view.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/user_profile/views/user_profile_view.dart';
 import 'clickable_avatar.dart';
+import '../../features/message/view_models/message_view_model.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
@@ -90,6 +90,8 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
                     ),
                   );
                 } else if (value == 'logout') {
+                  context.read<MessageViewModel>().clearData();
+
                   authVM.logout();
                 }
               },
