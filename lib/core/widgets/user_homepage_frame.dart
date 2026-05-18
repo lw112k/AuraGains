@@ -1,9 +1,12 @@
-import 'package:auragains/features/message/views/message_view.dart';
-import 'package:auragains/features/workout_management/views/workout_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../features/auth/view_models/auth_viewmodel.dart';
+
+import 'package:auragains/features/post_feed/views/pages/home/home_view.dart';
+import 'package:auragains/features/message/views/message_view.dart';
+import 'package:auragains/features/workout_management/views/workout_view.dart';
 import '../../features/user_profile/views/user_profile_view.dart';
+
+import '../../features/auth/view_models/auth_viewmodel.dart';
 import 'clickable_avatar.dart';
 import '../../features/message/view_models/message_view_model.dart';
 
@@ -43,7 +46,7 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
   // REMEMBER Teammates: When your feature is complete, replace the placeholder
   // Text widget below with your actual View class (e.g., HomeView()).
   final List<Widget> _pages = [
-    const Center(child: Text('Homepage')), // Index 0: Replace with HomeView()
+    const HomeView(), // Index 0: Replace with HomeView()
     const WorkoutView(), // Index 1: Replace with ChallengeView()
     const Center(child: Text('Post')), // Index 2: Replace with PostView()
     const MessageView(), // Index 3: Replace with MessageView()
