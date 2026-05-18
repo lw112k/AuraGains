@@ -179,6 +179,7 @@ class PostDetailView extends StatelessWidget {
                               reportBy: vm.currentUserId,
                               targetType: 'post',
                               targetId: post.postId,
+                              iconSize: 28,
                             ),
                           ],
                         ),

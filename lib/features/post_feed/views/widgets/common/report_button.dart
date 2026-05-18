@@ -5,12 +5,14 @@ class ReportButton extends StatelessWidget {
   final String reportBy;
   final String targetType;
   final int targetId;
+  final double iconSize;
 
   const ReportButton({
     super.key,
     required this.reportBy,
     required this.targetType,
     required this.targetId,
+    this.iconSize = 20,
   });
 
   @override
@@ -41,9 +43,10 @@ class ReportButton extends StatelessWidget {
         );
       },
 
-      icon: const Icon(
+      icon: Icon(
         Icons.flag_outlined,
         color: Colors.white,
+        size: iconSize
       ),
     );
   }

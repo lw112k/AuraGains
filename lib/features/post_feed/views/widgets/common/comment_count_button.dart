@@ -472,8 +472,6 @@ class _CommentCard extends StatelessWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 4),
-
                     Text(
                       comment.text,
 
