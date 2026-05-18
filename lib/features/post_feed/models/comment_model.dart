@@ -4,6 +4,7 @@ class CommentModel {
   final String userId;
   final String username;
   final String? profilePicUrl;
+  final bool isExpert;
 
   final String text;
   int likeCount;
@@ -24,6 +25,7 @@ class CommentModel {
     required this.userId,
     required this.username,
     required this.profilePicUrl,
+    required this.isExpert,
     required this.text,
     required this.likeCount,
     required this.replyCount,
@@ -44,7 +46,7 @@ class CommentModel {
       userId: json['user_id'],
       username: json['username'],
       profilePicUrl: json['profile_pic_url'],
-
+      isExpert: json['is_expert'] ?? false,
       text: json['text'],
 
       likeCount: json['comment_like'] ?? 0,

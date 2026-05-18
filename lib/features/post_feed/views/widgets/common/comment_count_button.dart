@@ -423,7 +423,7 @@ class _CommentCard extends StatelessWidget {
                       children: [
 
                         Text( // USERNAME
-                          comment.username,
+                          comment.userId == vm.currentUserId ? 'You' : comment.username, 
 
                           maxLines: 1,
 
@@ -434,6 +434,16 @@ class _CommentCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        
+                        if (comment.isExpert) ...[
+                          const SizedBox(width: 4),
+                          
+                          const Icon(
+                            Icons.verified_rounded,
+                            color: Colors.cyanAccent,
+                            size: 15,
+                          ),
+                        ],
 
                         const SizedBox(width: 8),
 

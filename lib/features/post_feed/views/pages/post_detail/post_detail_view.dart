@@ -165,7 +165,9 @@ class PostDetailView extends StatelessWidget {
 
                             Expanded( // USERNAME
                               child: Text(
-                                post.creatorUsername,
+                                post.isExpert
+                                    ? '${post.creatorUsername} (Verified Expert)'
+                                    : '${post.creatorUsername} (Member)',
 
                                 style: const TextStyle(
                                   color: Colors.white,

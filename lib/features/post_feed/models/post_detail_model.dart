@@ -14,6 +14,7 @@ class PostDetailModel {
   final String creatorId;
   final String creatorUsername;
   final String? creatorProfileUrl;
+  final bool isExpert;
 
   final List<PostMediaModel> mediaList;
   final List<TagModel> tagList;
@@ -36,6 +37,7 @@ class PostDetailModel {
     required this.creatorId,
     required this.creatorUsername,
     required this.creatorProfileUrl,
+    required this.isExpert,
     required this.mediaList,
     required this.tagList,
     required this.totalComment,
@@ -58,7 +60,7 @@ class PostDetailModel {
       creatorId: json['creator_id'],
       creatorUsername: json['creator_username'],
       creatorProfileUrl: json['creator_profile_url'],
-
+      isExpert: json['is_expert'] ?? false,
       mediaList: (json['post_media'] as List<dynamic>? ?? [])
           .map((e) => PostMediaModel.fromJson(e))
           .toList(),
