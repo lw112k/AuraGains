@@ -40,7 +40,7 @@ class Report {
       reason: row['reason'] as String? ?? '',
       status: row['status'] as String? ?? 'pending',
       reportedAt: DateTime.tryParse((row['created_at'] ?? row['create_date']) as String? ?? '') ??
-          DateTime.now(),
+          DateTime.fromMillisecondsSinceEpoch(0),
       reporterUsername: reporter?['username'] as String? ?? 'unknown',
       reporterAvatar: (reporter?['avatar_url'] ?? reporter?['profile_pic_url']) as String? ?? '',
     );

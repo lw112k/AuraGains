@@ -78,7 +78,7 @@ class AdminReportCard extends StatelessWidget {
             Padding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Text(
-              report.reason ?? '(no reason provided)',
+              report.displayReason.isNotEmpty ? report.displayReason : '(no reason provided)',
               style: const TextStyle(color: Colors.white, fontSize: 14),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -105,7 +105,7 @@ class AdminReportCard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(
                 children: [
-                  if (report.postId != null)
+                  if (report.postId != null || report.targetType == 'comment')
                     Expanded(
                       child: TextButton.icon(
                         onPressed: onViewContent,

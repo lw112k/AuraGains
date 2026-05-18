@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/admin_model.dart';
 import '../view_models/admin_viewmodel.dart';
 import '../widgets/admin_stat_card.dart';
 import '../widgets/admin_report_card.dart';
@@ -135,8 +136,8 @@ class _ReportQueue extends StatelessWidget {
                 report: r,
                 onApprove: () => _onApprove(context, r.reportId),
                 onDismiss: () => _onDismiss(context, r.reportId),
-                onViewContent: r.postId != null
-                    ? () => _viewContent(context, r.postId!, r.reportId)
+                onViewContent: (r.postId != null || r.targetType == 'comment')
+                    ? () => _viewContent(context, vm, r)
                     : null,
               ),
             ),
@@ -171,15 +172,46 @@ class _ReportQueue extends StatelessWidget {
     }
   }
 
-  void _viewContent(BuildContext context, int postId, int reportId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AdminContentDetailView(
-          postId: postId,
-          reportId: reportId,
+  Future<void> _viewContent(
+    BuildContext context,
+    AdminViewModel viewModel,
+    AdminReportModel report,
+  ) async {
+    // Resolve the parent post ID — for post reports it's targetId,
+    // for comment reports we need to fetch the comment's post_id.
+    final postId = report.targetType == 'comment'
+        ? await viewModel.resolveParentPostIdFromRepo(report.targetId!)
+        : report.targetId;
+
+    if (postId == null) {
+      if (report.targetType == 'comment' && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not find the parent post for this comment.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    final adminVm = context.read<AdminViewModel>();
+    if (!context.mounted) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ChangeNotifierProvider<AdminViewModel>.value(
+          value: adminVm,
+          child: AdminContentDetailView(
+            postId: postId,
+            reportId: report.reportId,
+          ),
         ),
       ),
     );
+    // If an action was taken in content detail, refresh reports to ensure UI is in sync
+    if (changed == true && context.mounted) {
+      adminVm.loadDashboard();
+    }
   }
 }
 

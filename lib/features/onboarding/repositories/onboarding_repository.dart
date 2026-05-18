@@ -45,9 +45,9 @@ class OnboardingRepository {
       // 4. Update the user table
       print('--- DEBUG: Updating User ID ${data.userId} with Level ID $levelId ---');  // error check debug
       await _supabase.from('user').update({  
-        if (formattedGender != null) 'gender': formattedGender,
-        if (dateOfBirth != null) 'date_of_birth': dateOfBirth,
-        if (levelId != null) 'level_id': levelId,
+        'gender': ?formattedGender,
+        'date_of_birth': ?dateOfBirth,
+        'level_id': ?levelId,
       }).eq('user_id', data.userId);
 
       // 5. Insert the physical metrics into the 'body_Status' table

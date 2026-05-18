@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../features/admin/views/admin_shell.dart';
-import '../../features/admin/views/content_detail_screen.dart';
+import '../../features/admin/views/admin_view.dart';
+import '../../features/admin/views/admin_content_detail_view.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
 import '../../features/auth/views/login_view.dart';
-import 'package:auragains/features/post_feed/views/pages/home/home_view.dart';
+import '../../core/widgets/user_homepage_frame.dart';
 import '../../core/widgets/splash_screen.dart';
-import 'package:auragains/features/admin/providers/admin_provider.dart';
+import '../../features/expert/views/expert_application_views.dart';
 
 // ─────────────────────────────────────────────────────────
 // ROUTE PATH CONSTANTS
@@ -24,7 +25,6 @@ abstract final class AppRoutes {
   static const String userHome = '/home';
   static const String adminPanel = '/admin';
   static const String adminUsers = '/admin/users';
-  static const String adminReports = '/admin/reports';
 
   static const String _adminContentBase = '/admin/content';
 
@@ -52,9 +52,9 @@ abstract final class AppRouter {
       initialLocation: AppRoutes.root,
       refreshListenable: authViewModel,
       redirect: (context, state) {
-        final isLoading = authViewModel.isLoading;
-        final isLoggedIn = authViewModel.currentUser != null;
-        final path = state.uri.path;
+      final isLoading = authViewModel.isLoading;
+      final isLoggedIn = authViewModel.currentUser != null;
+      final path = Uri.parse(state.location).path;
 
         // While the session is being restored, stay on the root splash.
         if (isLoading) return null;
@@ -77,38 +77,48 @@ abstract final class AppRouter {
         // Splash / entry point while session is being restored.
         GoRoute(
           path: AppRoutes.root,
-          builder: (_, __) => const SplashScreen(),
+          builder: (_, _) => const SplashScreen(),
         ),
 
         // Unauthenticated entry point.
         GoRoute(
           path: AppRoutes.login,
-          builder: (_, __) => const LoginView(),
+          builder: (_, _) => const LoginView(),
         ),
 
         // Standard user home.
         GoRoute(
           path: AppRoutes.userHome,
-          builder: (_, __) => const HomeView(),
+          builder: (_, __) => const UserHomepageFrame(),
         ),
 
         // ── Admin routes ────────────────────────────────────────────────
         // The shell owns the bottom nav bar (Content | Dashboard | Users).
         GoRoute(
           path: AppRoutes.adminPanel,
-          builder: (_, __) => ChangeNotifierProvider(
-            create: (_) => AdminProvider()..loadData(),
-            child: const AdminShell(),
-          ),
+          builder: (_, __) => const AdminView(),
           routes: [
             // Deep-link into the content-detail screen from outside the shell.
             GoRoute(
               path: 'content/:id',
-              builder: (_, state) => ContentDetailScreen(
-                postId: state.pathParameters['id']!,
-              ),
+              builder: (_, state) {
+                final idStr = state.pathParameters['id'] ?? '';
+                final parsed = int.tryParse(idStr);
+                return parsed != null
+                    ? AdminContentDetailView(postId: parsed)
+                    : const AdminView();
+              },
             ),
           ],
+        ),
+        GoRoute(
+          path: '/apply-expert',
+          builder: (context, state) {
+            // Grab the currently logged-in user's ID directly from Supabase
+            final String currentUserId = Supabase.instance.client.auth.currentUser?.id ?? '';
+            
+            return TrainerApplicationScreen(currentUserId: currentUserId);
+          },
         ),
       ],
     );

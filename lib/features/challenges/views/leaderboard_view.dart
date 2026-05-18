@@ -62,7 +62,7 @@ class LeaderboardView extends StatelessWidget {
           Expanded(
             child: _podiumBlock(data[1], 2, 110, const Color(0xFFC0C0C0)),
           ), // Silver
-        if (data.length > 0)
+        if (data.isNotEmpty)
           Expanded(
             child: _podiumBlock(data[0], 1, 150, const Color(0xFFFFD700)),
           ), // Gold
@@ -144,7 +144,7 @@ class LeaderboardView extends StatelessWidget {
       decoration: BoxDecoration(
         color: isMe
             ? Colors.cyanAccent.withOpacity(0.05)
-            : const Color(0xFF121212),
+            : const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isMe ? Colors.cyanAccent : Colors.white10),
         boxShadow: isMe
@@ -257,7 +257,7 @@ class LeaderboardView extends StatelessWidget {
           // Changed padding to symmetric so it is perfectly centered vertically
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.85),
+            color: Colors.black,
             border: const Border(
               top: BorderSide(color: Colors.cyanAccent, width: 0.5),
             ),

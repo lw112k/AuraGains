@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_profile_model.dart';
 import '../models/body_stats_model.dart';
@@ -6,6 +7,63 @@ import '../models/level_model.dart';
 
 class UserProfileRepository {
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  // --- Post Feeds ---
+
+  // 1. Fetch posts created by the user (With Visibility Logic)
+  Future<List<Map<String, dynamic>>> getUserPosts({
+    required String targetUserId,
+    required bool isMe,
+    required bool isFollowing,
+  }) async {
+    try {
+      var query = _supabase
+          .from('post')
+          .select('post_id, thumbnail_url')
+          .eq('post_by', targetUserId);
+
+      // THE VISIBILITY LOGIC
+      if (!isMe) {
+        if (isFollowing) {
+          // They are a follower: Show Public AND Friends-only posts
+          query = query.or('visibility.eq.public,visibility.eq.friends');
+        } else {
+          // Not following: Show ONLY Public posts
+          query = query.eq('visibility', 'public');
+        }
+        // Note: 'private' posts are naturally excluded by these filters!
+      }
+
+      // Execute the query with ordering
+      final response = await query.order('create_date', ascending: false);
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print("Repo Error (User Posts): $e");
+      return [];
+    }
+  }
+
+  // 2. Fetch posts saved by the user
+  Future<List<Map<String, dynamic>>> getSavedPosts(String userId) async {
+    try {
+      final response = await _supabase
+          .from('post_save')
+          .select('post_id, post!inner(thumbnail_url)')
+          .eq('user_id', userId) 
+          .order('create_date', referencedTable: 'post', ascending: false);
+
+      return (response as List).map((row) {
+        final postDetails = row['post'] as Map<String, dynamic>;
+        return {
+          'post_id': row['post_id'],
+          'thumbnail_url': postDetails['thumbnail_url'],
+        };
+      }).toList();
+    } catch (e) {
+      print("Repo Error (Saved Posts): $e");
+      return [];
+    }
+  }
 
   // --- Profile Identity ---
   Future<UserProfileModel?> getUserProfile(String userId) async {
@@ -254,6 +312,44 @@ class UserProfileRepository {
     } catch (e) {
       print('Network Stats Error: $e');
       return {'followers': 0, 'following': 0};
+    }
+  }
+  Future<Map<String, dynamic>?> getActiveProtocol(String userId) async {
+    try {
+      // 1. Check for a live session (end_time IS NULL)
+      final liveSession = await _supabase
+          .from('workout_session')
+          .select('train_proto_id')
+          .eq('user_id', userId)
+          .filter('end_time', 'is', null)
+          .order('start_time', ascending: false)
+          .limit(1)
+          .maybeSingle();
+  
+      // 2. Fall back to the most recently completed session
+      final lastSession = liveSession ??
+          await _supabase
+              .from('workout_session')
+              .select('train_proto_id')
+              .eq('user_id', userId)
+              .not('end_time', 'is', null)
+              .order('start_time', ascending: false)
+              .limit(1)
+              .maybeSingle();
+  
+      if (lastSession == null) return null;
+  
+      final int protoId = lastSession['train_proto_id'];
+  
+      // 3. Fetch full protocol details — is_public is what the view gate checks
+      return await _supabase
+          .from('training_protocol')
+          .select('train_proto_id, proto_title, goal, is_public, create_by, user:create_by(username)')
+          .eq('train_proto_id', protoId)
+          .maybeSingle();
+    } catch (e) {
+      debugPrint('Repo Error (Active Protocol): $e');
+      return null;
     }
   }
 }

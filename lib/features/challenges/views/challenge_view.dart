@@ -110,7 +110,7 @@ class _ChallengeViewState extends State<ChallengeView> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF121212),
+                      color: const Color(0xFF1E1E1E),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: TabBar(

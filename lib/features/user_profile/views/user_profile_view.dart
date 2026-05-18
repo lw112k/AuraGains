@@ -1,6 +1,9 @@
+import 'package:auragains/features/workout_management/views/protocol_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
+import '../../expert/views/expert_application_views.dart';
+import '../../auth/view_models/auth_viewmodel.dart';
 
 class UserProfileView extends StatelessWidget {
   final String targetUserId;
@@ -82,8 +85,9 @@ class UserProfileView extends StatelessWidget {
                 },
                 body: TabBarView(
                   children: <Widget>[
-                    _buildPostGrid(),
-                    if (viewModel.isMe) _buildPostGrid(),
+                    _buildPostGrid(viewModel, viewModel.userPosts),
+                    if (viewModel.isMe)
+                      _buildPostGrid(viewModel, viewModel.savedPosts),
                   ],
                 ),
               ),
@@ -94,6 +98,7 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
+  // --- Identity Zone ---
   Widget _buildIdentityZone(
     BuildContext context,
     UserProfileViewModel viewModel,
@@ -148,6 +153,7 @@ class UserProfileView extends StatelessWidget {
                                   : null,
                             ),
                     ),
+                    // The camera icon is back where it belongs!
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(
@@ -191,16 +197,32 @@ class UserProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _buildVerificationBadge(viewModel.expertStatus),
+
+        _buildVerificationBadge(context, viewModel),
 
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            _networkStatCard('Followers', viewModel.followerCount),
-            const SizedBox(width: 32),
-            _networkStatCard('Following', viewModel.followingCount),
-          ],
+
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.05)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              _networkStatCard('Followers', viewModel.followerCount),
+              Container(
+                height: 30,
+                width: 1,
+                margin: const EdgeInsets.symmetric(horizontal: 24),
+                color: Colors.grey.withOpacity(0.3),
+              ),
+              _networkStatCard('Following', viewModel.followingCount),
+            ],
+          ),
         ),
       ],
     );
@@ -223,13 +245,20 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildVerificationBadge(String? status) {
+  // --- Verification Badge (Pill Shape) ---
+  Widget _buildVerificationBadge(
+    BuildContext context,
+    UserProfileViewModel viewModel,
+  ) {
+    final status = viewModel.expertStatus;
+    final isMe = viewModel.isMe;
+
     if (status == 'approved') {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.cyanAccent.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(50),
           border: Border.all(color: Colors.cyanAccent),
         ),
         child: const Row(
@@ -238,38 +267,106 @@ class UserProfileView extends StatelessWidget {
             Icon(Icons.verified, color: Colors.cyanAccent, size: 16),
             SizedBox(width: 4),
             Text(
-              'Verified Expert',
+              'Verified Trainer',
               style: TextStyle(
                 color: Colors.cyanAccent,
                 fontWeight: FontWeight.bold,
+                fontSize: 12,
               ),
             ),
           ],
         ),
       );
-    } else if (status == 'pending') {
-      return const Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(Icons.access_time, color: Colors.grey, size: 16),
-          SizedBox(width: 4),
-          Text('Verification Pending...', style: TextStyle(color: Colors.grey)),
-        ],
-      );
+    }
+
+    if (isMe) {
+      if (status == 'pending') {
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.grey.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(50),
+            border: Border.all(color: Colors.grey.withOpacity(0.3)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.access_time, color: Colors.grey, size: 16),
+              SizedBox(width: 4),
+              Text(
+                'Verification Pending',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        return Material(
+          color: Colors.cyanAccent,
+          borderRadius: BorderRadius.circular(50),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(50),
+            onTap: () async {
+              // 1. Wait here while they are on the application screen
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => TrainerApplicationScreen(
+                    currentUserId: viewModel.currentUserId,
+                  ),
+                ),
+              );
+
+              // 2. Refresh the profile the exact second they come back
+              viewModel.refreshProfile();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(50),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    'Verify Trainer',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_ios, color: Colors.black, size: 10),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
     } else {
-      return GestureDetector(
-        onTap: () {},
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(50),
+        ),
         child: const Text(
-          'Verify as Expert?',
+          'AuraGains User',
           style: TextStyle(
-            color: Colors.cyanAccent,
-            decoration: TextDecoration.underline,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
         ),
       );
     }
   }
 
+  // --- Unified Dashboard (Objective & Stats) ---
   Widget _buildDashboardRow(
     BuildContext context,
     UserProfileViewModel viewModel,
@@ -304,130 +401,149 @@ class UserProfileView extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // ----------------------------------------------------
+            // 1. OBJECTIVE CARD
+            // ----------------------------------------------------
             Expanded(
-              child: GestureDetector(
-                onTap: viewModel.isMe
-                    ? () {
-                        showModalBottomSheet(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) =>
-                              EditObjectiveBottomSheet(viewModel: viewModel),
-                        );
-                      }
-                    : null,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.cyanAccent.withOpacity(0.2),
-                    ),
+              child: Material(
+                color: const Color(0xFF1E1E1E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: viewModel.isMe
+                        ? Colors.cyanAccent.withOpacity(0.4)
+                        : Colors.grey.withOpacity(0.1),
+                    width: viewModel.isMe ? 1.5 : 1.0,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          const SizedBox(width: 4),
-                          const Text(
-                            'OBJECTIVE',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: viewModel.isMe
+                      ? () {
+                          showModalBottomSheet(
+                            context: context,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) =>
+                                EditObjectiveBottomSheet(viewModel: viewModel),
+                          );
+                        }
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Text(
+                              'OBJECTIVE',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                          if (viewModel.isMe) ...<Widget>[
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.edit,
-                              color: Colors.cyanAccent,
-                              size: 12,
-                            ),
+                            if (viewModel.isMe) ...<Widget>[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.edit,
+                                color: Colors.cyanAccent,
+                                size: 12,
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        displayName,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.cyanAccent,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          displayName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.cyanAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
+
             const SizedBox(width: 12),
 
+            // ----------------------------------------------------
+            // 2. STATS CARD
+            // ----------------------------------------------------
             Expanded(
-              child: GestureDetector(
-                onTap: viewModel.isMe
-                    ? () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) =>
-                              EditStatsBottomSheet(viewModel: viewModel),
-                        );
-                      }
-                    : null,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.cyanAccent.withOpacity(0.1),
-                    ),
+              child: Material(
+                color: const Color(0xFF1E1E1E),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: viewModel.isMe
+                        ? Colors.cyanAccent.withOpacity(0.4)
+                        : Colors.grey.withOpacity(0.1),
+                    width: viewModel.isMe ? 1.5 : 1.0,
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          const SizedBox(width: 4),
-                          const Text(
-                            'STATS',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: viewModel.isMe
+                      ? () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) =>
+                                EditStatsBottomSheet(viewModel: viewModel),
+                          );
+                        }
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: <Widget>[
+                            const Text(
+                              'STATS',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                          if (viewModel.isMe) ...<Widget>[
-                            const SizedBox(width: 4),
-                            const Icon(
-                              Icons.edit,
-                              color: Colors.cyanAccent,
-                              size: 12,
-                            ),
+                            if (viewModel.isMe) ...<Widget>[
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.edit,
+                                color: Colors.cyanAccent,
+                                size: 12,
+                              ),
+                            ],
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: <Widget>[
-                          _compactStat('Height', hText, hideStats),
-                          Container(
-                            width: 1,
-                            height: 30,
-                            color: Colors.grey.withOpacity(0.3),
-                          ),
-                          _compactStat('Weight', wText, hideStats),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: <Widget>[
+                            _compactStat('Height', hText, hideStats),
+                            Container(
+                              width: 1,
+                              height: 30,
+                              color: Colors.grey.withOpacity(0.3),
+                            ),
+                            _compactStat('Weight', wText, hideStats),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -459,53 +575,65 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
+  // --- Action Zone ---
   Widget _buildActionZone(
     BuildContext context,
     UserProfileViewModel viewModel,
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        children: <Widget>[
+        children: [
           if (viewModel.isMe) ...<Widget>[
-            _commandButton(
-              'Workout Plan',
-              const Color(0xFF1E1E1E),
-              Colors.white,
-              () {},
+            _actionButton(
+              text: 'Workout Plan',
+              icon: Icons.fitness_center,
+              onTap: () => _openWorkoutPlan(context, viewModel),
             ),
           ] else ...<Widget>[
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: viewModel.isFollowing
-                      ? Colors.transparent
-                      : Colors.cyanAccent,
-                  side: viewModel.isFollowing
-                      ? const BorderSide(color: Colors.grey)
-                      : BorderSide.none,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  flex: 1,
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: viewModel.isFollowing
+                            ? Colors.transparent
+                            : Colors.cyanAccent,
+                        side: viewModel.isFollowing
+                            ? BorderSide(color: Colors.grey.withValues(alpha: 0.5))
+                            : BorderSide.none,
+                        elevation: viewModel.isFollowing ? 0 : 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => viewModel.toggleFollow(),
+                      child: Text(
+                        viewModel.isFollowing ? 'Following' : 'Follow',
+                        style: TextStyle(
+                          color: viewModel.isFollowing
+                              ? Colors.white
+                              : Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                onPressed: () => viewModel.toggleFollow(),
-                child: Text(
-                  viewModel.isFollowing ? 'Following' : 'Follow',
-                  style: TextStyle(
-                    color: viewModel.isFollowing ? Colors.white : Colors.black,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 1,
+                  child: _actionButton(
+                    text: 'View Workout',
+                    icon: Icons.visibility,
+                    onTap: () => _openWorkoutPlan(context, viewModel),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _commandButton(
-              'View Workout Plan',
-              const Color(0xFF1E1E1E),
-              Colors.white,
-              () {},
+              ],
             ),
           ],
         ],
@@ -513,36 +641,121 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _commandButton(
-    String text,
-    Color bgColor,
-    Color textColor,
-    VoidCallback onTap,
-  ) {
+  void _openWorkoutPlan(BuildContext context, UserProfileViewModel viewModel) {
+  final protocol = viewModel.activeProtocol;
+
+  // No training history at all
+  if (protocol == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          viewModel.isMe
+              ? 'You have no active workout protocol yet. Start one from the Workout tab!'
+              : '${viewModel.profile?.username ?? 'This user'} hasn\'t started any training protocols yet.',
+        ),
+        backgroundColor: const Color(0xFF2A2A2A),
+      ),
+    );
+    return;
+  }
+
+  // 🔒 Privacy gate — only applies when viewing someone else's profile.
+  // Private protocols are never shown to other users, even followers.
+  final bool isPublic = protocol['is_public'] == true;
+  if (!viewModel.isMe && !isPublic) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${viewModel.profile?.username ?? 'This user'}\'s workout plan is private.',
+        ),
+        backgroundColor: const Color(0xFF2A2A2A),
+      ),
+    );
+    return;
+  }
+
+  // All checks passed — navigate
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => ProtocolDetailView(protocolData: protocol),
+    ),
+  );
+}
+
+  Widget _actionButton({
+    required String text,
+    IconData? icon,
+    required VoidCallback onTap,
+  }) {
     return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: bgColor,
+          backgroundColor: const Color(0xFF2A2A2A),
+          foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Colors.cyanAccent.withOpacity(0.3),
+            ), // Subtle accent
           ),
         ),
         onPressed: onTap,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 0.5,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: 18, color: Colors.cyanAccent),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              text,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                fontSize: 15,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildPostGrid() {
+  // --- Post Grid ---
+  Widget _buildPostGrid(
+    UserProfileViewModel viewModel,
+    List<Map<String, dynamic>> postsList,
+  ) {
+    if (viewModel.isLoadingPosts) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.cyanAccent),
+      );
+    }
+
+    if (postsList.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(Icons.grid_off, color: Colors.grey, size: 48),
+            SizedBox(height: 16),
+            Text(
+              'No Posts Found',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return GridView.builder(
       padding: const EdgeInsets.all(2),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -550,9 +763,42 @@ class UserProfileView extends StatelessWidget {
         crossAxisSpacing: 2,
         mainAxisSpacing: 2,
       ),
-      itemCount: 15,
+      itemCount: postsList.length,
       itemBuilder: (context, index) {
-        return Container(color: const Color(0xFF1E1E1E));
+        final post = postsList[index];
+        final imageUrl = post['thumbnail_url'] as String?;
+        final postId = post['post_id'].toString();
+
+        return GestureDetector(
+          onTap: () {
+            // 🚀 TEAMMATE HANDOFF POINT
+            debugPrint("Navigating to Post View...");
+            debugPrint("Target User ID: ${viewModel.targetUserId}");
+            debugPrint("Post ID clicked: $postId");
+          },
+          child: Container(
+            color: const Color(0xFF1E1E1E),
+            child: imageUrl != null && imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.cyanAccent,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : const Icon(Icons.image_not_supported, color: Colors.grey),
+          ),
+        );
       },
     );
   }

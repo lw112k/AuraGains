@@ -101,7 +101,7 @@ class _HistoryViewState extends State<HistoryView> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF121212),
+        color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color.withOpacity(0.3), width: 1),
       ),
@@ -220,7 +220,7 @@ class _HistoryViewState extends State<HistoryView> {
             child: Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF121212).withOpacity(0.9),
+                color: const Color(0xFF1E1E1E).withOpacity(0.9),
                 border: Border(
                   top: BorderSide(color: color.withOpacity(0.5), width: 1),
                 ),
@@ -499,7 +499,7 @@ class _HistoryViewState extends State<HistoryView> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  color: const Color(0xFF121212),
+                  color: const Color(0xFF1E1E1E),
                   width: double.infinity,
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.7,

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/admin_viewmodel.dart';
+import 'admin_applications_view.dart';
 import 'admin_dashboard_view.dart';
 import 'admin_users_view.dart';
+import 'admin_challenges_view.dart';
 import 'admin_reports_view.dart';
-import 'admin_applications_view.dart';
 import 'package:auragains/features/admin/admin_palette.dart';
 import 'package:auragains/features/auth/view_models/auth_viewmodel.dart';
 
@@ -28,21 +29,26 @@ class _AdminShell extends StatefulWidget {
 }
 
 class _AdminShellState extends State<_AdminShell> {
-  int _currentIndex = 0;
+  int _currentIndex = 2;
+  int _reportsRefreshKey = 0;
 
   static const _tabs = [
+    (label: 'Verify Expert', icon: Icons.assignment_rounded),
+    (label: 'User', icon: Icons.people_rounded),
     (label: 'Dashboard', icon: Icons.dashboard_rounded),
-    (label: 'Users', icon: Icons.people_rounded),
+    (label: 'Challenges', icon: Icons.emoji_events_rounded),
     (label: 'Reports', icon: Icons.flag_rounded),
-    (label: 'Applications', icon: Icons.assignment_rounded),
   ];
 
-  static const _pages = [
-    AdminDashboardView(),
-    AdminUsersView(),
-    AdminReportsView(),
-    AdminApplicationsView(),
-  ];
+  List<Widget> get _pages => [
+        const AdminApplicationsView(),
+        const AdminUsersView(),
+        const AdminDashboardView(),
+        const AdminChallengesView(),
+        AdminReportsView(
+          key: ValueKey('reports_$_reportsRefreshKey'),
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +115,10 @@ class _AdminShellState extends State<_AdminShell> {
       ),
       bottomNavigationBar: _AdminNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        pendingReports: vm.stats.pendingReports,
+        onTap: (i) => setState(() {
+          _currentIndex = i;
+          if (i == 4) _reportsRefreshKey++;
+        }),
         pendingApplications: vm.stats.pendingApplications,
       ),
     );
@@ -121,13 +129,11 @@ class _AdminNavBar extends StatelessWidget {
   const _AdminNavBar({
     required this.currentIndex,
     required this.onTap,
-    required this.pendingReports,
     required this.pendingApplications,
   });
 
   final int currentIndex;
   final void Function(int) onTap;
-  final int pendingReports;
   final int pendingApplications;
 
   @override
@@ -145,30 +151,35 @@ class _AdminNavBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Dashboard',
+                icon: Icons.assignment_rounded,
+                label: 'Verify Expert',
                 active: currentIndex == 0,
                 onTap: () => onTap(0),
+                badge: pendingApplications,
               ),
               _NavItem(
                 icon: Icons.people_rounded,
-                label: 'Users',
+                label: 'User',
                 active: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.flag_rounded,
-                label: 'Reports',
+                icon: Icons.dashboard_rounded,
+                label: 'Dashboard',
                 active: currentIndex == 2,
                 onTap: () => onTap(2),
-                badge: pendingReports,
               ),
               _NavItem(
-                icon: Icons.assignment_rounded,
-                label: 'Applications',
+                icon: Icons.emoji_events_rounded,
+                label: 'Challenges',
                 active: currentIndex == 3,
                 onTap: () => onTap(3),
-                badge: pendingApplications,
+              ),
+              _NavItem(
+                icon: Icons.flag_rounded,
+                label: 'Reports',
+                active: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),

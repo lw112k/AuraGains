@@ -11,9 +11,12 @@ class AdminViewModel extends ChangeNotifier {
   final AdminRepository _repo = AdminRepository();
 
   // ─── Loading / Error ─────────────────────────────────────────────────
-  bool isLoading = false;
-  bool isActionLoading = false;
+  bool _isLoading = false;
+  bool _isActionLoading = false;
   String? errorMessage;
+
+  bool get isLoading => _isLoading;
+  bool get isActionLoading => _isActionLoading;
 
   // ─── Dashboard ───────────────────────────────────────────────────────
   AdminDashboardStats stats = const AdminDashboardStats.empty();
@@ -24,19 +27,57 @@ class AdminViewModel extends ChangeNotifier {
   String userSearchQuery = '';
   String userRoleFilter = 'All';
 
+  // Role normalization tokens — helps map DB values to UI labels and back.
+  static const Set<String> _userTokens = {
+    'gym_member',
+    'user',
+    'member'
+  };
+  static const Set<String> _expertTokens = {
+    'expert',
+    'trainer',
+    'pro_trainer'
+  };
+  static const Set<String> _adminTokens = {
+    'admin',
+    'super_admin',
+    'administrator'
+  };
+
+  // Deterministic label→DB-token map; prevents bad inference from _allUsers.
+  static const Map<String, String> _roleLabelToDbToken = {
+    'user': 'gym_member',
+    'expert': 'expert',
+    'admin': 'admin',
+  };
+
+  String labelForSystemRole(String? sysRole) {
+    final r = (sysRole ?? '').toLowerCase();
+    if (_userTokens.contains(r)) return 'User';
+    if (_expertTokens.contains(r)) return 'Expert';
+    if (_adminTokens.contains(r)) return 'Admin';
+    if (r.isEmpty) return 'User';
+    return r[0].toUpperCase() + r.substring(1);
+  }
+
+  String _labelForSystemRole(String? sysRole) => labelForSystemRole(sysRole);
+
+  String _dbTokenForLabel(String label) {
+    return _roleLabelToDbToken[label.toLowerCase()] ?? label;
+  }
+
   List<AdminUserModel> get filteredUsers {
     return _allUsers.where((u) {
       final q = userSearchQuery.toLowerCase();
       final matchesSearch = q.isEmpty ||
           u.username.toLowerCase().contains(q) ||
           u.email.toLowerCase().contains(q);
+      final roleLabel = _labelForSystemRole(u.systemRole);
       final matchesRole = userRoleFilter == 'All' ||
           (userRoleFilter == 'Banned' && u.isBanned) ||
-          (userRoleFilter == 'Expert' && u.systemRole == 'expert') ||
-          (userRoleFilter == 'Admin' && u.systemRole == 'admin') ||
-          (userRoleFilter == 'User' &&
-              u.systemRole == 'user' &&
-              !u.isBanned);
+          (userRoleFilter == 'Expert' && roleLabel == 'Expert') ||
+          (userRoleFilter == 'Admin' && roleLabel == 'Admin') ||
+          (userRoleFilter == 'User' && roleLabel == 'User' && !u.isBanned);
       return matchesSearch && matchesRole;
     }).toList();
   }
@@ -63,11 +104,16 @@ class AdminViewModel extends ChangeNotifier {
         .toList();
   }
 
+  /// Resolve the parent post ID for a comment (used by dashboard/reports navigation).
+  Future<int?> resolveParentPostIdFromRepo(int commentId) =>
+      _repo.fetchParentPostIdForComment(commentId);
+
   // ─── Content detail ──────────────────────────────────────────────────
   AdminPostModel? detailPost;
   AdminUserModel? detailPostAuthor;
   AdminReportModel? detailReport;
   AdminUserModel? detailReporter;
+  AdminCommentModel? detailComment;
   List<String> detailMediaUrls = [];
 
   // ─── Application detail ──────────────────────────────────────────────
@@ -132,19 +178,29 @@ class AdminViewModel extends ChangeNotifier {
   }
 
   Future<void> loadContentDetail(int postId, int? reportId) async {
+    // Reset stale state from previous navigation
+    detailComment = null;
     _setLoading(true);
     try {
       detailPost = await _repo.fetchPost(postId);
       detailMediaUrls = await _repo.fetchPostMediaUrls(postId);
-      if (detailPost?.postBy != null) {
-        detailPostAuthor = await _repo.fetchUser(detailPost!.postBy!.toString());
+      if (detailPost?.postBy != null && detailPost!.postBy!.isNotEmpty) {
+        detailPostAuthor = await _repo.fetchUser(detailPost!.postBy!);
       }
       if (reportId != null) {
         final reportMatch =
             _allReports.where((r) => r.reportId == reportId).toList();
-        detailReport = reportMatch.isNotEmpty ? reportMatch.first : null;
-        if (detailReport?.reportBy != null) {
-          detailReporter = await _repo.fetchUser(detailReport!.reportBy!.toString());
+        detailReport = reportMatch.isNotEmpty
+            ? reportMatch.first
+            : await _repo.fetchReportById(reportId);
+        if (detailReport?.reportBy != null &&
+            detailReport!.reportBy!.isNotEmpty) {
+          detailReporter = await _repo.fetchUser(detailReport!.reportBy!);
+        }
+        // Load comment if report targets a comment
+        if (detailReport?.targetType == 'comment' &&
+            detailReport?.targetId != null) {
+          detailComment = await _repo.fetchComment(detailReport!.targetId!);
         }
       }
       errorMessage = null;
@@ -178,17 +234,15 @@ class AdminViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectApplication(int index) {
-    if (index >= 0 && index < _allApplications.length) {
-      detailApplication = _allApplications[index];
-    }
+  void selectApplication(AdminApplicationModel app) {
+    detailApplication = app;
     notifyListeners();
   }
 
   // ─── Actions ─────────────────────────────────────────────────────────
 
   Future<bool> banUser(String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.banUser(userId);
@@ -201,13 +255,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to ban user: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> unbanUser(String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.unbanUser(userId);
@@ -220,82 +274,163 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to unban user: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> setUserRole(String userId, String role) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.setSystemRole(userId, role);
-      _allUsers = _allUsers
+      if (role.toLowerCase() == 'expert') {
+        // Expert status is determined by expert_application approval, not system_role.
+        await _repo.approveExpertForUser(userId);
+        _allUsers = _allUsers
           .map((u) =>
-              u.userId == userId ? _copyUserWith(u, systemRole: role) : u)
+            u.userId == userId ? _copyUserWith(u, systemRole: 'expert') : u)
           .toList();
+      } else {
+        // Normalize UI label to DB token before persisting.
+        final dbToken = _dbTokenForLabel(role);
+        await _repo.setSystemRole(userId, dbToken);
+        _allUsers = _allUsers
+          .map((u) =>
+            u.userId == userId ? _copyUserWith(u, systemRole: dbToken) : u)
+          .toList();
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to update role: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
+  /// Approve report → repo deletes the flagged post + all related reports, then refresh.
   Future<bool> approveReport(int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.updateReportStatus(reportId, 'approved');
-      _updateReportStatus(reportId, 'approved');
+      await _repo.approveReport(reportId); // deletes post + all related reports
+      await loadReports();
+      stats = await _repo.fetchDashboardStats();
+      recentReports = await _repo.fetchReports(status: 'pending');
+      if (recentReports.length > 5) {
+        recentReports = recentReports.sublist(0, 5);
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to approve report: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
+  /// Dismiss report → repo deletes the single report row, post stays intact.
   Future<bool> dismissReport(int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
-      await _repo.updateReportStatus(reportId, 'dismissed');
-      _updateReportStatus(reportId, 'dismissed');
+      await _repo.rejectReport(reportId); // deletes the report row
+      _removeReportById(reportId);
+      stats = await _repo.fetchDashboardStats();
+      recentReports = await _repo.fetchReports(status: 'pending');
+      if (recentReports.length > 5) {
+        recentReports = recentReports.sublist(0, 5);
+      }
       return true;
     } catch (e) {
       errorMessage = 'Failed to dismiss report: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
+  /// Delete post + all its reports (used by ContentDetailView).
   Future<bool> deletePost(int postId, int reportId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.deletePost(postId);
-      await _repo.updateReportStatus(reportId, 'approved');
-      _updateReportStatus(reportId, 'approved');
+      await _repo.deleteReportsByPostId(postId);
+      _removeReportsByPostId(postId);
       detailPost = null;
       return true;
     } catch (e) {
       errorMessage = 'Failed to delete post: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete post + all its reports + ban the author (used by ContentDetailView).
+  Future<bool> deletePostAndBanUser(int postId, int reportId, String userId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deletePost(postId);
+      await _repo.deleteReportsByPostId(postId);
+      await _repo.banUser(userId);
+      _removeReportsByPostId(postId);
+      detailPost = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete post and ban user: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete comment + all its reports (used by ContentDetailView for comment reports).
+  Future<bool> deleteComment(int commentId, int reportId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deleteComment(commentId);
+      await _repo.deleteReportsByCommentId(commentId);
+      detailComment = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete comment: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Delete comment + all its reports + ban the author (used by ContentDetailView for comment reports).
+  Future<bool> deleteCommentAndBanUser(int commentId, int reportId, String userId) async {
+    _isActionLoading = true;
+    notifyListeners();
+    try {
+      await _repo.deleteComment(commentId);
+      await _repo.deleteReportsByCommentId(commentId);
+      await _repo.banUser(userId);
+      detailComment = null;
+      return true;
+    } catch (e) {
+      errorMessage = 'Failed to delete comment and ban user: $e';
+      return false;
+    } finally {
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> approveApplication(String applicationId, String userId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.approveApplication(applicationId, userId);
@@ -305,13 +440,13 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to approve application: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   Future<bool> rejectApplication(String applicationId) async {
-    isActionLoading = true;
+    _isActionLoading = true;
     notifyListeners();
     try {
       await _repo.rejectApplication(applicationId);
@@ -321,81 +456,42 @@ class AdminViewModel extends ChangeNotifier {
       errorMessage = 'Failed to reject application: $e';
       return false;
     } finally {
-      isActionLoading = false;
+      _isActionLoading = false;
       notifyListeners();
     }
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────
 
-  void _setLoading(bool value) {
-    isLoading = value;
-    notifyListeners();
+  /// Remove a single report from both local lists.
+  void _removeReportById(int reportId) {
+    _allReports = _allReports.where((r) => r.reportId != reportId).toList();
+    recentReports = recentReports.where((r) => r.reportId != reportId).toList();
   }
 
-  void _updateReportStatus(int reportId, String status) {
+  /// Remove all reports referencing a post from local lists.
+  void _removeReportsByPostId(int postId) {
     _allReports = _allReports
-        .map((r) => r.reportId == reportId
-            ? AdminReportModel(
-                reportId: r.reportId,
-                reportBy: r.reportBy,
-                targetType: r.targetType,
-                targetId: r.targetId,
-                reason: r.reason,
-                createDate: r.createDate,
-                status: status,
-                postId: r.postId,
-              )
-            : r)
+        .where((r) => r.postId != postId)
         .toList();
     recentReports = recentReports
-        .map((r) => r.reportId == reportId
-            ? AdminReportModel(
-                reportId: r.reportId,
-                reportBy: r.reportBy,
-                targetType: r.targetType,
-                targetId: r.targetId,
-                reason: r.reason,
-                createDate: r.createDate,
-                status: status,
-                postId: r.postId,
-              )
-            : r)
+        .where((r) => r.postId != postId)
         .toList();
+  }
+
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
   }
 
   void _updateAppStatus(String appId, String status) {
     _allApplications = _allApplications
         .map((a) => a.applicationId == appId
-            ? AdminApplicationModel(
-                applicationId: a.applicationId,
-                userId: a.userId,
-                expertTitle: a.expertTitle,
-                experienceYears: a.experienceYears,
-                experienceDescription: a.experienceDescription,
-                applicationStatus: status,
-                createDate: a.createDate,
-                username: a.username,
-                profilePicUrl: a.profilePicUrl,
-                email: a.email,
-                imageUrls: a.imageUrls,
-              )
+            ? a.copyWith(applicationStatus: status)
             : a)
         .toList();
     if (detailApplication?.applicationId == appId) {
-      detailApplication = AdminApplicationModel(
-        applicationId: detailApplication!.applicationId,
-        userId: detailApplication!.userId,
-        expertTitle: detailApplication!.expertTitle,
-        experienceYears: detailApplication!.experienceYears,
-        experienceDescription: detailApplication!.experienceDescription,
-        applicationStatus: status,
-        createDate: detailApplication!.createDate,
-        username: detailApplication!.username,
-        profilePicUrl: detailApplication!.profilePicUrl,
-        email: detailApplication!.email,
-        imageUrls: detailApplication!.imageUrls,
-      );
+      detailApplication = detailApplication!.copyWith(applicationStatus: status);
     }
   }
 
