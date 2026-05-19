@@ -167,15 +167,22 @@ class LeaderboardView extends StatelessWidget {
             badge: rank,
           ),
           const SizedBox(width: 15),
-          Text(
-            data['username'] ?? '',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+
+          Expanded(
+            child: Text(
+              data['username'] ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
             ),
           ),
-          const Spacer(),
+
+          const SizedBox(width: 10),
+
           Text(
             '${data['total_points']}',
             style: const TextStyle(

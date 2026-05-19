@@ -31,6 +31,8 @@ class UserProfileViewModel extends ChangeNotifier {
   int _followerCount = 0;
   int _followingCount = 0;
 
+  String _viewerUnitSystem = 'cm/kg';
+
   UserProfileModel? _profile;
   BodyStatsModel? _bodyStats;
   String? _expertStatus;
@@ -53,6 +55,7 @@ class UserProfileViewModel extends ChangeNotifier {
   String? get expertStatus => _expertStatus;
 
   bool get isFollowing => _isFollowing;
+  bool _isMutual = false;
   bool get isFollowLoading => _isFollowLoading;
   int get followerCount => _followerCount;
   int get followingCount => _followingCount;
@@ -63,6 +66,9 @@ class UserProfileViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get userPosts => _userPosts;
   List<Map<String, dynamic>> get savedPosts => _savedPosts;
   bool get isLoadingPosts => _isLoadingPosts;
+
+  String get displayUnitSystem =>
+      _isMe ? (_bodyStats?.unitSystem ?? 'cm/kg') : _viewerUnitSystem;
 
   Future<void> initializeProfile(String sessionUserId) async {
     _isLoading = true;
@@ -79,7 +85,8 @@ class UserProfileViewModel extends ChangeNotifier {
       _fetchBodyStats(),
       _fetchNetworkStats(),
       _fetchPostsData(),
-      _fetchActiveProtocol(), 
+      _fetchActiveProtocol(),
+      if (!_isMe) _fetchViewerUnitSystem(),
     ]);
 
     _isLoading = false;
@@ -161,7 +168,8 @@ class UserProfileViewModel extends ChangeNotifier {
       _fetchNetworkStats(),
       _fetchPostsData(),
       if (!_isMe) _checkFollowStatus(),
-      _fetchActiveProtocol(), 
+      _fetchActiveProtocol(),
+      if (!_isMe) _fetchViewerUnitSystem(),
     ]);
 
     notifyListeners();
@@ -214,10 +222,20 @@ class UserProfileViewModel extends ChangeNotifier {
   }
 
   Future<void> _checkFollowStatus() async {
+    // 1. Do YOU follow THEM?
     _isFollowing = await _repository.checkIsFollowing(
       currentUserId: currentUserId,
       targetUserId: targetUserId,
     );
+
+    // 2. Do THEY follow YOU? 
+    final followsMe = await _repository.checkIsFollowing(
+      currentUserId: targetUserId,
+      targetUserId: currentUserId,
+    );
+
+    // 3. A friend is only a friend if the feeling is mutual
+    _isMutual = _isFollowing && followsMe;
   }
 
   Future<void> toggleFollow() async {
@@ -278,11 +296,10 @@ class UserProfileViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 💡 Pass the identity and follow status to the repository
       _userPosts = await _repository.getUserPosts(
         targetUserId: targetUserId,
         isMe: _isMe,
-        isFollowing: _isFollowing,
+        isMutualFriend: _isMutual,
       );
 
       if (_isMe) {
@@ -295,7 +312,13 @@ class UserProfileViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
   Future<void> _fetchActiveProtocol() async {
-      _activeProtocol = await _repository.getActiveProtocol(targetUserId);
-  } 
+    _activeProtocol = await _repository.getActiveProtocol(targetUserId);
+  }
+
+  Future<void> _fetchViewerUnitSystem() async {
+    final viewerStats = await _repository.getUserBodyStats(currentUserId);
+    _viewerUnitSystem = viewerStats?.unitSystem ?? 'cm/kg';
+  }
 }

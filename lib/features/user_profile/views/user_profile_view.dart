@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/user_profile_viewmodel.dart';
 import '../../expert/views/expert_application_views.dart';
-import '../../auth/view_models/auth_viewmodel.dart';
+import '../../post_feed/view_models/post_detail/post_detail_viewmodel.dart';
+import '../../post_feed/views/pages/post_detail/post_detail_view.dart';
 
 class UserProfileView extends StatelessWidget {
   final String targetUserId;
@@ -153,7 +154,6 @@ class UserProfileView extends StatelessWidget {
                                   : null,
                             ),
                     ),
-                    // The camera icon is back where it belongs!
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(
@@ -311,7 +311,6 @@ class UserProfileView extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(50),
             onTap: () async {
-              // 1. Wait here while they are on the application screen
               await Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => TrainerApplicationScreen(
@@ -319,8 +318,6 @@ class UserProfileView extends StatelessWidget {
                   ),
                 ),
               );
-
-              // 2. Refresh the profile the exact second they come back
               viewModel.refreshProfile();
             },
             child: Container(
@@ -374,89 +371,90 @@ class UserProfileView extends StatelessWidget {
     final displayName = viewModel.currentLevel?.name ?? 'Set Objective';
     final isPrivate = viewModel.bodyStats?.visibility == 'private';
     final hideStats = !viewModel.isMe && isPrivate;
-    final useImperial = viewModel.bodyStats?.unitSystem == 'ft/lbs';
+    final useImperial = viewModel.displayUnitSystem == 'ft/lbs';
 
     final hCm = viewModel.bodyStats?.heightCm;
     final wKg = viewModel.bodyStats?.weightKg;
     final hasHeight = hCm != null && hCm > 0;
     final hasWeight = wKg != null && wKg > 0;
-
+    
     final hText = hideStats
         ? "Hidden"
         : (!hasHeight
               ? "-"
-              : (useImperial ? viewModel.bodyStats!.heightFtIn : '$hCm cm'));
-
+              : (useImperial
+                    ? viewModel.bodyStats!.heightFtIn
+                    : '${hCm.toStringAsFixed(1)} cm'));
     final wText = hideStats
         ? "Hidden"
         : (!hasWeight
               ? "-"
               : (useImperial
-                    ? '${viewModel.bodyStats!.weightLbs} lbs'
-                    : '$wKg kg'));
+                    ? '${viewModel.bodyStats!.weightLbs.toStringAsFixed(1)} lbs'
+                    : '${wKg.toStringAsFixed(1)} kg'));
+    Widget sectionHeader(String title) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 8),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.grey,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (viewModel.isMe) ...const [
+              SizedBox(width: 4),
+              Icon(Icons.edit, color: Colors.cyanAccent, size: 12),
+            ],
+          ],
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // ----------------------------------------------------
-            // 1. OBJECTIVE CARD
-            // ----------------------------------------------------
-            Expanded(
-              child: Material(
-                color: const Color(0xFF1E1E1E),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: viewModel.isMe
-                        ? Colors.cyanAccent.withOpacity(0.4)
-                        : Colors.grey.withOpacity(0.1),
-                    width: viewModel.isMe ? 1.5 : 1.0,
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: viewModel.isMe
-                      ? () {
-                          showModalBottomSheet(
-                            context: context,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) =>
-                                EditObjectiveBottomSheet(viewModel: viewModel),
-                          );
-                        }
-                      : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            const Text(
-                              'OBJECTIVE',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            if (viewModel.isMe) ...<Widget>[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.edit,
-                                color: Colors.cyanAccent,
-                                size: 12,
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
+      child: Row(
+        children: <Widget>[
+          // ----------------------------------------------------
+          // 1. OBJECTIVE COLUMN
+          // ----------------------------------------------------
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                sectionHeader('OBJECTIVE'),
+                SizedBox(
+                  height: 65, // 💡 Sleek, fixed height box!
+                  child: Material(
+                    color: const Color(0xFF1E1E1E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: viewModel.isMe
+                            ? Colors.cyanAccent.withOpacity(0.4)
+                            : Colors.grey.withOpacity(0.1),
+                        width: viewModel.isMe ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: viewModel.isMe
+                          ? () {
+                              showModalBottomSheet(
+                                context: context,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) => EditObjectiveBottomSheet(
+                                  viewModel: viewModel,
+                                ),
+                              );
+                            }
+                          : null,
+                      child: Center(
+                        child: Text(
                           displayName,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -465,91 +463,69 @@ class UserProfileView extends StatelessWidget {
                             fontSize: 14,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
+          ),
 
-            const SizedBox(width: 12),
+          const SizedBox(width: 12),
 
-            // ----------------------------------------------------
-            // 2. STATS CARD
-            // ----------------------------------------------------
-            Expanded(
-              child: Material(
-                color: const Color(0xFF1E1E1E),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: viewModel.isMe
-                        ? Colors.cyanAccent.withOpacity(0.4)
-                        : Colors.grey.withOpacity(0.1),
-                    width: viewModel.isMe ? 1.5 : 1.0,
-                  ),
-                ),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: viewModel.isMe
-                      ? () {
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) =>
-                                EditStatsBottomSheet(viewModel: viewModel),
-                          );
-                        }
-                      : null,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            const Text(
-                              'STATS',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            if (viewModel.isMe) ...<Widget>[
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.edit,
-                                color: Colors.cyanAccent,
-                                size: 12,
-                              ),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: <Widget>[
-                            _compactStat('Height', hText, hideStats),
-                            Container(
-                              width: 1,
-                              height: 30,
-                              color: Colors.grey.withOpacity(0.3),
-                            ),
-                            _compactStat('Weight', wText, hideStats),
-                          ],
-                        ),
-                      ],
+          // ----------------------------------------------------
+          // 2. STATS COLUMN
+          // ----------------------------------------------------
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                sectionHeader('STATS'),
+                SizedBox(
+                  height: 65, // 💡 Matches the Objective box perfectly!
+                  child: Material(
+                    color: const Color(0xFF1E1E1E),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(
+                        color: viewModel.isMe
+                            ? Colors.cyanAccent.withOpacity(0.4)
+                            : Colors.grey.withOpacity(0.1),
+                        width: viewModel.isMe ? 1.5 : 1.0,
+                      ),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: viewModel.isMe
+                          ? () {
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                builder: (context) =>
+                                    EditStatsBottomSheet(viewModel: viewModel),
+                              );
+                            }
+                          : null,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: <Widget>[
+                          _compactStat('Height', hText, hideStats),
+                          Container(
+                            width: 1,
+                            height: 30,
+                            color: Colors.grey.withOpacity(0.3),
+                          ),
+                          _compactStat('Weight', wText, hideStats),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -603,7 +579,9 @@ class UserProfileView extends StatelessWidget {
                             ? Colors.transparent
                             : Colors.cyanAccent,
                         side: viewModel.isFollowing
-                            ? BorderSide(color: Colors.grey.withValues(alpha: 0.5))
+                            ? BorderSide(
+                                color: Colors.grey.withValues(alpha: 0.5),
+                              )
                             : BorderSide.none,
                         elevation: viewModel.isFollowing ? 0 : 2,
                         shape: RoundedRectangleBorder(
@@ -611,14 +589,17 @@ class UserProfileView extends StatelessWidget {
                         ),
                       ),
                       onPressed: () => viewModel.toggleFollow(),
-                      child: Text(
-                        viewModel.isFollowing ? 'Following' : 'Follow',
-                        style: TextStyle(
-                          color: viewModel.isFollowing
-                              ? Colors.white
-                              : Colors.black,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          viewModel.isFollowing ? 'Following' : 'Follow',
+                          style: TextStyle(
+                            color: viewModel.isFollowing
+                                ? Colors.white
+                                : Colors.black,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ),
@@ -642,46 +623,43 @@ class UserProfileView extends StatelessWidget {
   }
 
   void _openWorkoutPlan(BuildContext context, UserProfileViewModel viewModel) {
-  final protocol = viewModel.activeProtocol;
+    final protocol = viewModel.activeProtocol;
 
-  // No training history at all
-  if (protocol == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          viewModel.isMe
-              ? 'You have no active workout protocol yet. Start one from the Workout tab!'
-              : '${viewModel.profile?.username ?? 'This user'} hasn\'t started any training protocols yet.',
+    if (protocol == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            viewModel.isMe
+                ? 'You have no active workout protocol yet. Start one from the Workout tab!'
+                : '${viewModel.profile?.username ?? 'This user'} hasn\'t started any training protocols yet.',
+          ),
+          backgroundColor: const Color(0xFF2A2A2A),
         ),
-        backgroundColor: const Color(0xFF2A2A2A),
+      );
+      return;
+    }
+
+    final bool isPublic = protocol['is_public'] == true;
+
+    if (!viewModel.isMe && !isPublic) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${viewModel.profile?.username ?? 'This user'}\'s workout plan is private.',
+          ),
+          backgroundColor: const Color(0xFF2A2A2A),
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProtocolDetailView(protocolData: protocol),
       ),
     );
-    return;
   }
-
-  // 🔒 Privacy gate — only applies when viewing someone else's profile.
-  // Private protocols are never shown to other users, even followers.
-  final bool isPublic = protocol['is_public'] == true;
-  if (!viewModel.isMe && !isPublic) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${viewModel.profile?.username ?? 'This user'}\'s workout plan is private.',
-        ),
-        backgroundColor: const Color(0xFF2A2A2A),
-      ),
-    );
-    return;
-  }
-
-  // All checks passed — navigate
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ProtocolDetailView(protocolData: protocol),
-    ),
-  );
-}
 
   Widget _actionButton({
     required String text,
@@ -698,28 +676,32 @@ class UserProfileView extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Colors.cyanAccent.withOpacity(0.3),
-            ), // Subtle accent
+            side: BorderSide(color: Colors.cyanAccent.withOpacity(0.3)),
           ),
         ),
         onPressed: onTap,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            if (icon != null) ...<Widget>[
-              Icon(icon, size: 18, color: Colors.cyanAccent),
-              const SizedBox(width: 8),
-            ],
-            Text(
-              text,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-                fontSize: 15,
+        // 💡 Wrapped the ENTIRE Row in a FittedBox to shrink icon + text together!
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize:
+                MainAxisSize.min, // 💡 Important so it shrinks properly
+            children: <Widget>[
+              if (icon != null) ...<Widget>[
+                Icon(icon, size: 18, color: Colors.cyanAccent),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                text,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
+                  fontSize: 14, // Slightly smaller base font
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -766,38 +748,28 @@ class UserProfileView extends StatelessWidget {
       itemCount: postsList.length,
       itemBuilder: (context, index) {
         final post = postsList[index];
-        final imageUrl = post['thumbnail_url'] as String?;
-        final postId = post['post_id'].toString();
+        final postId = int.parse(post['post_id'].toString());
 
-        return GestureDetector(
+        return _PostPreviewTile(
+          post: post,
           onTap: () {
-            // 🚀 TEAMMATE HANDOFF POINT
-            debugPrint("Navigating to Post View...");
-            debugPrint("Target User ID: ${viewModel.targetUserId}");
-            debugPrint("Post ID clicked: $postId");
+            if (!context.mounted) return;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ChangeNotifierProvider(
+                  create: (context) {
+                    return PostDetailViewModel(
+                      postId: postId,
+                      currentUserId: viewModel.currentUserId,
+                    )..loadPost();
+                  },
+                  child: const PostDetailView(),
+                ),
+              ),
+            );
           },
-          child: Container(
-            color: const Color(0xFF1E1E1E),
-            child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.cyanAccent,
-                            strokeWidth: 2,
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                : const Icon(Icons.image_not_supported, color: Colors.grey),
-          ),
         );
       },
     );
@@ -805,8 +777,9 @@ class UserProfileView extends StatelessWidget {
 }
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
-  _SliverAppBarDelegate(this._tabBar);
   final TabBar _tabBar;
+
+  _SliverAppBarDelegate(this._tabBar);
 
   @override
   double get minExtent => _tabBar.preferredSize.height;
@@ -823,12 +796,13 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) => false;
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
+    return false;
+  }
 }
 
 class EditObjectiveBottomSheet extends StatelessWidget {
   final UserProfileViewModel viewModel;
-
   const EditObjectiveBottomSheet({Key? key, required this.viewModel})
     : super(key: key);
 
@@ -840,47 +814,50 @@ class EditObjectiveBottomSheet extends StatelessWidget {
         color: Color(0xFF1E1E1E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Text(
-            'Select Primary Objective',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              'Select Primary Objective',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          ...viewModel.availableLevels.map((level) {
-            final isSelected = viewModel.currentLevel?.levelId == level.levelId;
-            return ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(
-                level.name,
-                style: TextStyle(
-                  color: isSelected ? Colors.cyanAccent : Colors.white,
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            ...viewModel.availableLevels.map((level) {
+              final isSelected =
+                  viewModel.currentLevel?.levelId == level.levelId;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  level.name,
+                  style: TextStyle(
+                    color: isSelected ? Colors.cyanAccent : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              subtitle: Text(
-                level.description,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-              trailing: isSelected
-                  ? const Icon(Icons.check_circle, color: Colors.cyanAccent)
-                  : null,
-              onTap: () {
-                viewModel.saveLevel(level);
-                Navigator.pop(context);
-              },
-            );
-          }),
-          const SizedBox(height: 24),
-        ],
+                subtitle: Text(
+                  level.description,
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: Colors.cyanAccent)
+                    : null,
+                onTap: () {
+                  viewModel.saveLevel(level);
+                  Navigator.pop(context);
+                },
+              );
+            }),
+            const SizedBox(height: 24),
+          ],
+        ), // Closes the Column
       ),
-    );
+    ); // Closes the Container
   }
 }
 
@@ -1014,7 +991,6 @@ class _EditStatsBottomSheetState extends State<EditStatsBottomSheet> {
                         inputWeight: w,
                         selectedUnitSystem: _selectedUnit,
                       );
-
                       if (success && mounted) Navigator.pop(context);
                     },
               child: widget.viewModel.isSavingStats
@@ -1060,6 +1036,160 @@ class _EditStatsBottomSheetState extends State<EditStatsBottomSheet> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.cyanAccent),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// Private Grid Tile Class
+// ==========================================
+class _PostPreviewTile extends StatelessWidget {
+  final Map<String, dynamic> post;
+  final VoidCallback onTap;
+
+  const _PostPreviewTile({Key? key, required this.post, required this.onTap})
+    : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final String title = post['title']?.toString() ?? 'No Title';
+    final int postId =
+        int.tryParse(post['post_id'].toString()) ?? title.hashCode;
+    final String visibility = post['visibility']?.toString() ?? 'public';
+    final String? explicitThumbnail = post['thumbnail_url']?.toString();
+
+    String? mediaUrl;
+    String mediaType = 'text';
+
+    final postMedia = post['post_media'];
+
+    Map<String, dynamic>? mediaData;
+
+    // 💡 THE CATCH-ALL: Handle both Lists and single Maps safely
+    if (postMedia is List && postMedia.isNotEmpty) {
+      mediaData = postMedia.first as Map<String, dynamic>;
+    } else if (postMedia is Map) {
+      mediaData = postMedia as Map<String, dynamic>;
+    }
+
+    // If we successfully grabbed the media data, extract the URL and type
+    if (mediaData != null) {
+      mediaUrl = mediaData['media_url']?.toString();
+      // Double check if your database column is called 'type' instead of 'media_type'!
+      mediaType = mediaData['media_type']?.toString() ?? 'picture';
+    }
+
+    final String? imageToShow =
+        (explicitThumbnail != null && explicitThumbnail.isNotEmpty)
+        ? explicitThumbnail
+        : mediaUrl;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildThumbnailOrFallback(imageToShow, title, postId),
+            Positioned(
+              top: 6,
+              right: 6,
+              child: _buildIndicators(visibility, mediaType),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndicators(String visibility, String mediaType) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // 1. VISIBILITY INDICATORS
+        if (visibility == 'private') ...[
+          _indicatorContainer(Icons.lock_outline),
+          const SizedBox(width: 4),
+        ] else if (visibility == 'friends') ...[
+          _indicatorContainer(
+            Icons.people_outline,
+          ), // 💡 Group icon for friends-only!
+          const SizedBox(width: 4),
+        ],
+        // Note: If it's 'public', we don't show an icon to keep the thumbnail clean,
+        // just like Instagram does!
+
+        // 2. MEDIA TYPE INDICATORS
+        if (mediaType == 'video')
+          _indicatorContainer(Icons.play_arrow)
+        else if (mediaType == 'text')
+          _indicatorContainer(Icons.text_snippet)
+        else // picture
+          _indicatorContainer(Icons.photo_library, size: 12),
+      ],
+    );
+  }
+
+  Widget _indicatorContainer(IconData icon, {double size = 14}) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.6),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: size),
+    );
+  }
+
+  Widget _buildThumbnailOrFallback(String? url, String title, int id) {
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (_, __, ___) => _buildFeedStyleFallback(title, id),
+      );
+    }
+    return _buildFeedStyleFallback(title, id);
+  }
+
+  Widget _buildFeedStyleFallback(String title, int id) {
+    final List<List<Color>> feedBackgrounds = [
+      [const Color(0xFF283593), const Color(0xFF3F51B5)],
+      [const Color(0xFFE65100), const Color(0xFFFF9800)],
+      [const Color(0xFF01579B), const Color(0xFF0288D1)],
+      [const Color(0xFF4A148C), const Color(0xFF7B1FA2)],
+      [const Color(0xFF004D40), const Color(0xFF00796B)],
+    ];
+
+    final gradient = feedBackgrounds[id % feedBackgrounds.length];
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+      ),
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Text(
+        title,
+        textAlign: TextAlign.center,
+        maxLines: 4,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          height: 1.2,
         ),
       ),
     );

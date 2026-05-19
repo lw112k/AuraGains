@@ -56,35 +56,66 @@ class _DirectMessageViewState extends State<DirectMessageView> {
       appBar: AppBar(
         backgroundColor: fieldColor,
         centerTitle: true,
-        title: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClickableAvatar(
-              profilePicUrl: widget.targetPicUrl,
-              username: widget.chatName,
-              radius: 16,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UserProfileView(
-                      targetUserId: widget.targetUserId,
-                      currentUserId: widget.viewModel.currentUserId,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(width: 12),
-            Text(
-              widget.chatName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+        elevation: 1,
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UserProfileView(
+                  targetUserId: widget.targetUserId,
+                  currentUserId: widget.viewModel.currentUserId,
+                ),
               ),
-            ),
-          ],
+            );
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              ClickableAvatar(
+                radius: 18,
+                profilePicUrl: widget.targetPicUrl,
+                username: widget.chatName,
+              ),
+              const SizedBox(width: 12),
+
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.chatName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Tap to view profile',
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 4),
+              const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+            ],
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
@@ -107,39 +138,61 @@ class _DirectMessageViewState extends State<DirectMessageView> {
                 final messages = snapshot.data!;
 
                 return ListView.builder(
-                  reverse: true, // 4. Set to true to pin to bottom
+                  reverse: true, // Pins to bottom
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
                     final isMe = msg.senderId == widget.viewModel.currentUserId;
 
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                          vertical: 4,
-                          horizontal: 12,
-                        ),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: isMe ? accentColor : fieldColor,
-                          borderRadius: BorderRadius.circular(16).copyWith(
-                            bottomRight: isMe
-                                ? const Radius.circular(0)
-                                : const Radius.circular(16),
-                            bottomLeft: !isMe
-                                ? const Radius.circular(0)
-                                : const Radius.circular(16),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 4,
+                        horizontal: 12,
+                      ),
+                      child: Row(
+                        // Pushes my messages to the right, their messages to the left
+                        mainAxisAlignment: isMe
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        // Aligns the avatar to the very bottom of the chat bubble
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // 1. Show the OTHER person's avatar on the left
+                          if (!isMe) ...[
+                            _buildMessageAvatar(
+                              widget.targetPicUrl,
+                              widget.chatName,
+                            ),
+                            const SizedBox(
+                              width: 8,
+                            ), // Gap between avatar and bubble
+                          ],
+
+                          // 2. The Chat Bubble itself
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isMe ? accentColor : fieldColor,
+                                borderRadius: BorderRadius.circular(16)
+                                    .copyWith(
+                                      bottomRight: isMe
+                                          ? const Radius.circular(0)
+                                          : const Radius.circular(16),
+                                      bottomLeft: !isMe
+                                          ? const Radius.circular(0)
+                                          : const Radius.circular(16),
+                                    ),
+                              ),
+                              child: Text(
+                                msg.contentText ?? '',
+                                style: TextStyle(
+                                  color: isMe ? Colors.black : Colors.white,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          msg.contentText ?? '',
-                          style: TextStyle(
-                            color: isMe ? Colors.black : Colors.white,
-                          ),
-                        ),
+                        ],
                       ),
                     );
                   },
@@ -164,6 +217,9 @@ class _DirectMessageViewState extends State<DirectMessageView> {
                       child: TextField(
                         controller: _messageController,
                         style: const TextStyle(color: Colors.white),
+                        textCapitalization: TextCapitalization.sentences,
+                        minLines: 1,
+                        maxLines: 5,
                         decoration: const InputDecoration(
                           hintText: 'Type a message...',
                           hintStyle: TextStyle(color: Colors.grey),
@@ -194,6 +250,25 @@ class _DirectMessageViewState extends State<DirectMessageView> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMessageAvatar(String? picUrl, String name) {
+    return ClickableAvatar(
+      radius: 14,
+      profilePicUrl: picUrl,
+      username: name,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserProfileView(
+              targetUserId: widget.targetUserId,
+              currentUserId: widget.viewModel.currentUserId,
+            ),
+          ),
+        );
+      },
     );
   }
 }

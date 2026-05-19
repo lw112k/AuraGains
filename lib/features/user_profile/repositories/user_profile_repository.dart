@@ -14,28 +14,30 @@ class UserProfileRepository {
   Future<List<Map<String, dynamic>>> getUserPosts({
     required String targetUserId,
     required bool isMe,
-    required bool isFollowing,
+    required bool
+    isMutualFriend, 
   }) async {
     try {
       var query = _supabase
           .from('post')
-          .select('post_id, thumbnail_url')
+          .select(
+            'post_id, title, visibility, thumbnail_url, post_media(media_url, media_type)',
+          )
           .eq('post_by', targetUserId);
 
-      // THE VISIBILITY LOGIC
+      // THE STRICT VISIBILITY LOGIC
       if (!isMe) {
-        if (isFollowing) {
-          // They are a follower: Show Public AND Friends-only posts
+        if (isMutualFriend) {
+          // They follow each other! Show both public and friends-only posts.
           query = query.or('visibility.eq.public,visibility.eq.friends');
         } else {
-          // Not following: Show ONLY Public posts
+          // One-way follow or complete strangers. ONLY show public posts.
           query = query.eq('visibility', 'public');
         }
-        // Note: 'private' posts are naturally excluded by these filters!
       }
+      // Note: If isMe is true, it skips the filters entirely and loads everything you own!
 
-      // Execute the query with ordering
-      final response = await query.order('create_date', ascending: false);
+      final response = await query;
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print("Repo Error (User Posts): $e");
@@ -48,15 +50,20 @@ class UserProfileRepository {
     try {
       final response = await _supabase
           .from('post_save')
-          .select('post_id, post!inner(thumbnail_url)')
-          .eq('user_id', userId) 
+          .select(
+            'post_id, post!inner(title, visibility, thumbnail_url, post_media(media_url, media_type))',
+          )
+          .eq('user_id', userId)
           .order('create_date', referencedTable: 'post', ascending: false);
 
       return (response as List).map((row) {
         final postDetails = row['post'] as Map<String, dynamic>;
         return {
           'post_id': row['post_id'],
+          'title': postDetails['title'],
+          'visibility': postDetails['visibility'],
           'thumbnail_url': postDetails['thumbnail_url'],
+          'post_media': postDetails['post_media'],
         };
       }).toList();
     } catch (e) {
@@ -314,6 +321,7 @@ class UserProfileRepository {
       return {'followers': 0, 'following': 0};
     }
   }
+
   Future<Map<String, dynamic>?> getActiveProtocol(String userId) async {
     try {
       // 1. Check for a live session (end_time IS NULL)
@@ -325,9 +333,10 @@ class UserProfileRepository {
           .order('start_time', ascending: false)
           .limit(1)
           .maybeSingle();
-  
+
       // 2. Fall back to the most recently completed session
-      final lastSession = liveSession ??
+      final lastSession =
+          liveSession ??
           await _supabase
               .from('workout_session')
               .select('train_proto_id')
@@ -336,15 +345,17 @@ class UserProfileRepository {
               .order('start_time', ascending: false)
               .limit(1)
               .maybeSingle();
-  
+
       if (lastSession == null) return null;
-  
+
       final int protoId = lastSession['train_proto_id'];
-  
+
       // 3. Fetch full protocol details — is_public is what the view gate checks
       return await _supabase
           .from('training_protocol')
-          .select('train_proto_id, proto_title, goal, is_public, create_by, user:create_by(username)')
+          .select(
+            'train_proto_id, proto_title, goal, is_public, create_by, user:create_by(username)',
+          )
           .eq('train_proto_id', protoId)
           .maybeSingle();
     } catch (e) {
