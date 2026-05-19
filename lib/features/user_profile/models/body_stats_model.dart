@@ -5,7 +5,6 @@ class BodyStatsModel {
   final String heightFtIn;
   final double weightLbs;
   final String unitSystem;
-  final String visibility;
 
   BodyStatsModel({
     required this.bodyStatusId,
@@ -14,7 +13,6 @@ class BodyStatsModel {
     required this.heightFtIn,
     required this.weightLbs,
     required this.unitSystem,
-    required this.visibility,
   });
 
   factory BodyStatsModel.fromJson(Map<String, dynamic> json) {
@@ -32,7 +30,6 @@ class BodyStatsModel {
       heightFtIn: json['height_ft_in'] ?? "0'0\"",
       unitSystem:
           json['unit_system'] ?? 'cm/kg', // 💡 Default fallback as requested
-      visibility: json['visibility'] ?? 'public',
     );
   }
 }

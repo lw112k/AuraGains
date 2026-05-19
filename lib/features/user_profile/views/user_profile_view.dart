@@ -369,29 +369,24 @@ class UserProfileView extends StatelessWidget {
     UserProfileViewModel viewModel,
   ) {
     final displayName = viewModel.currentLevel?.name ?? 'Set Objective';
-    final isPrivate = viewModel.bodyStats?.visibility == 'private';
-    final hideStats = !viewModel.isMe && isPrivate;
     final useImperial = viewModel.displayUnitSystem == 'ft/lbs';
 
     final hCm = viewModel.bodyStats?.heightCm;
     final wKg = viewModel.bodyStats?.weightKg;
     final hasHeight = hCm != null && hCm > 0;
     final hasWeight = wKg != null && wKg > 0;
-    
-    final hText = hideStats
-        ? "Hidden"
-        : (!hasHeight
-              ? "-"
-              : (useImperial
-                    ? viewModel.bodyStats!.heightFtIn
-                    : '${hCm.toStringAsFixed(1)} cm'));
-    final wText = hideStats
-        ? "Hidden"
-        : (!hasWeight
-              ? "-"
-              : (useImperial
-                    ? '${viewModel.bodyStats!.weightLbs.toStringAsFixed(1)} lbs'
-                    : '${wKg.toStringAsFixed(1)} kg'));
+
+    final hText = !hasHeight
+        ? "-"
+        : (useImperial
+              ? viewModel.bodyStats!.heightFtIn
+              : '${hCm.toStringAsFixed(1)} cm');
+
+    final wText = !hasWeight
+        ? "-"
+        : (useImperial
+              ? '${viewModel.bodyStats!.weightLbs.toStringAsFixed(1)} lbs'
+              : '${wKg.toStringAsFixed(1)} kg');
     Widget sectionHeader(String title) {
       return Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8),
@@ -482,7 +477,7 @@ class UserProfileView extends StatelessWidget {
               children: [
                 sectionHeader('STATS'),
                 SizedBox(
-                  height: 65, // 💡 Matches the Objective box perfectly!
+                  height: 65,
                   child: Material(
                     color: const Color(0xFF1E1E1E),
                     shape: RoundedRectangleBorder(
@@ -510,13 +505,13 @@ class UserProfileView extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: <Widget>[
-                          _compactStat('Height', hText, hideStats),
+                          _compactStat('Height', hText), 
                           Container(
                             width: 1,
                             height: 30,
                             color: Colors.grey.withOpacity(0.3),
                           ),
-                          _compactStat('Weight', wText, hideStats),
+                          _compactStat('Weight', wText), 
                         ],
                       ),
                     ),
@@ -530,14 +525,13 @@ class UserProfileView extends StatelessWidget {
     );
   }
 
-  Widget _compactStat(String label, String value, bool isHidden) {
+  Widget _compactStat(String label, String value) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (isHidden)
-          const Icon(Icons.visibility_off, color: Colors.grey, size: 16)
-        else
-          Text(
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
             value,
             style: const TextStyle(
               color: Colors.white,
@@ -545,6 +539,7 @@ class UserProfileView extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
+        ),
         const SizedBox(height: 4),
         Text(label, style: const TextStyle(color: Colors.grey, fontSize: 10)),
       ],
