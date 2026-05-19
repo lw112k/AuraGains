@@ -505,13 +505,13 @@ class UserProfileView extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: <Widget>[
-                          _compactStat('Height', hText), 
+                          _compactStat('Height', hText),
                           Container(
                             width: 1,
                             height: 30,
                             color: Colors.grey.withOpacity(0.3),
                           ),
-                          _compactStat('Weight', wText), 
+                          _compactStat('Weight', wText),
                         ],
                       ),
                     ),
@@ -733,6 +733,13 @@ class UserProfileView extends StatelessWidget {
       );
     }
 
+    final sortedPosts = List<Map<String, dynamic>>.from(postsList);
+    sortedPosts.sort((a, b) {
+      final idA = int.tryParse(a['post_id'].toString()) ?? 0;
+      final idB = int.tryParse(b['post_id'].toString()) ?? 0;
+      return idB.compareTo(idA);
+    });
+
     return GridView.builder(
       padding: const EdgeInsets.all(2),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -740,9 +747,9 @@ class UserProfileView extends StatelessWidget {
         crossAxisSpacing: 2,
         mainAxisSpacing: 2,
       ),
-      itemCount: postsList.length,
+      itemCount: sortedPosts.length,
       itemBuilder: (context, index) {
-        final post = postsList[index];
+        final post = sortedPosts[index];
         final postId = int.parse(post['post_id'].toString());
 
         return _PostPreviewTile(
@@ -1054,7 +1061,7 @@ class _PostPreviewTile extends StatelessWidget {
         int.tryParse(post['post_id'].toString()) ?? title.hashCode;
     final String visibility = post['visibility']?.toString() ?? 'public';
     final String? explicitThumbnail = post['thumbnail_url']?.toString();
-
+    final String postType = post['post_type']?.toString() ?? 'normal';
     String? mediaUrl;
     String mediaType = 'text';
 
@@ -1062,7 +1069,7 @@ class _PostPreviewTile extends StatelessWidget {
 
     Map<String, dynamic>? mediaData;
 
-    // 💡 THE CATCH-ALL: Handle both Lists and single Maps safely
+    // THE CATCH-ALL: Handle both Lists and single Maps safely
     if (postMedia is List && postMedia.isNotEmpty) {
       mediaData = postMedia.first as Map<String, dynamic>;
     } else if (postMedia is Map) {
@@ -1089,6 +1096,33 @@ class _PostPreviewTile extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             _buildThumbnailOrFallback(imageToShow, title, postId),
+
+            if (postType == 'ask_expert')
+              Positioned(
+                top: 6,
+                left: 6, 
+                child: Container(
+                  padding: const EdgeInsets.all(6), 
+                  decoration: BoxDecoration(
+                    color: Colors.cyanAccent,
+                    shape: BoxShape
+                        .circle, 
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons
+                        .forum_outlined, 
+                    color: Colors.black,
+                    size: 14,
+                  ),
+                ),
+              ),
+
             Positioned(
               top: 6,
               right: 6,

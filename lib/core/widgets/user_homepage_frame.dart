@@ -9,6 +9,8 @@ import '../../features/user_profile/views/user_profile_view.dart';
 import '../../features/auth/view_models/auth_viewmodel.dart';
 import 'clickable_avatar.dart';
 import '../../features/message/view_models/message_view_model.dart';
+import '../../features/create_post/views/create_post_view.dart';
+import '../../features/create_post/view_models/create_post_viewmodel.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
@@ -143,35 +145,58 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
   Widget _buildBottomNavBar() {
     return BottomNavigationBar(
       currentIndex: _currentIndex,
-      onTap: (index) => setState(() => _currentIndex = index),
+      onTap: (index) {
+        if (index == 2) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChangeNotifierProvider(
+                create: (_) => CreatePostViewModel(),
+                child: const CreatePostView(),
+              ),
+            ),
+          );
+        } else {
+          setState(() => _currentIndex = index);
+        }
+      },
       type: BottomNavigationBarType.fixed,
       backgroundColor: const Color(0xFF1E1E1E),
       selectedItemColor: Colors.blueAccent,
       unselectedItemColor: Colors.grey,
       showSelectedLabels: false,
       showUnselectedLabels: false,
-      items: const <BottomNavigationBarItem>[
-        BottomNavigationBarItem(
+      items: <BottomNavigationBarItem>[
+        const BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
           activeIcon: Icon(Icons.home),
           label: 'Home',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.fitness_center_outlined),
           activeIcon: Icon(Icons.fitness_center),
           label: 'Workout',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.add_box_outlined),
-          activeIcon: Icon(Icons.add_box),
+          icon: Transform.translate(
+            offset: const Offset(0, -4),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Colors.blueAccent,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 28),
+            ),
+          ),
           label: 'Post',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.chat_bubble_outline),
           activeIcon: Icon(Icons.chat_bubble),
           label: 'Message',
         ),
-        BottomNavigationBarItem(
+        const BottomNavigationBarItem(
           icon: Icon(Icons.contact_support_outlined),
           activeIcon: Icon(Icons.contact_support),
           label: 'Expert',

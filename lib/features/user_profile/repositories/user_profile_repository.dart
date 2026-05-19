@@ -14,14 +14,13 @@ class UserProfileRepository {
   Future<List<Map<String, dynamic>>> getUserPosts({
     required String targetUserId,
     required bool isMe,
-    required bool
-    isMutualFriend, 
+    required bool isMutualFriend,
   }) async {
     try {
       var query = _supabase
           .from('post')
           .select(
-            'post_id, title, visibility, thumbnail_url, post_media(media_url, media_type)',
+            'post_id, title, visibility, thumbnail_url, post_type, post_media(media_url, media_type)',
           )
           .eq('post_by', targetUserId);
 
@@ -35,9 +34,8 @@ class UserProfileRepository {
           query = query.eq('visibility', 'public');
         }
       }
-      // Note: If isMe is true, it skips the filters entirely and loads everything you own!
 
-      final response = await query;
+      final response = await query.order('post_id', ascending: false);
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print("Repo Error (User Posts): $e");
@@ -51,10 +49,10 @@ class UserProfileRepository {
       final response = await _supabase
           .from('post_save')
           .select(
-            'post_id, post!inner(title, visibility, thumbnail_url, post_media(media_url, media_type))',
+            'post_id, post!inner(title, visibility, thumbnail_url, post_type, post_media(media_url, media_type))',
           )
           .eq('user_id', userId)
-          .order('create_date', referencedTable: 'post', ascending: false);
+          .order('post_id', referencedTable: 'post', ascending: false);
 
       return (response as List).map((row) {
         final postDetails = row['post'] as Map<String, dynamic>;
@@ -63,6 +61,7 @@ class UserProfileRepository {
           'title': postDetails['title'],
           'visibility': postDetails['visibility'],
           'thumbnail_url': postDetails['thumbnail_url'],
+          'post_type': postDetails['post_type'],
           'post_media': postDetails['post_media'],
         };
       }).toList();
