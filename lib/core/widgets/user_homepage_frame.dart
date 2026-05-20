@@ -11,6 +11,7 @@ import 'clickable_avatar.dart';
 import '../../features/message/view_models/message_view_model.dart';
 import '../../features/create_post/views/create_post_view.dart';
 import '../../features/create_post/view_models/create_post_viewmodel.dart';
+import '../../features/search/views/search_view.dart';
 
 /// =====================================================================
 /// [UserHomepageFrame]
@@ -72,7 +73,10 @@ class _UserHomepageFrameState extends State<UserHomepageFrame> {
           IconButton(
             icon: const Icon(Icons.search),
             onPressed: () {
-              print("Search tapped");
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchView()),
+              );
             },
           ),
           Padding(
