@@ -151,6 +151,7 @@ class WorkoutViewModel extends ChangeNotifier {
         userId: userId,
       );
 
+
       final savedLog = await _repository.logWorkout(newLog);
       
       // Update local state without needing to refetch everything

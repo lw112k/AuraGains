@@ -15,6 +15,7 @@ class ExerciseData {
   ExerciseData({required this.exerciseName, required this.sets});
 }
 
+
 class SetData {
   final int setNumber;
   final int kg;

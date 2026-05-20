@@ -19,6 +19,7 @@ class _WorkoutRow {
   final String workoutName;
   final List<String> muscleNames; // from workout_target_muscle → target_muscle
 
+
   _WorkoutRow({
     required this.workoutId,
     required this.workoutName,

@@ -16,6 +16,7 @@ class WorkoutView extends StatefulWidget {
   State<WorkoutView> createState() => _WorkoutViewState();
 }
 
+
 class _WorkoutViewState extends State<WorkoutView> {
   final GlobalKey _protocolsKey = GlobalKey();
 

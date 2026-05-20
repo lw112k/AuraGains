@@ -13,6 +13,7 @@ class WorkoutLogView extends StatefulWidget {
   State<WorkoutLogView> createState() => _WorkoutLogViewState();
 }
 
+
 class _WorkoutLogViewState extends State<WorkoutLogView> {
   final Color _cardColor = const Color(0xFF1E1E1E);
   final Color _bgColor = const Color(0xFF121212);
