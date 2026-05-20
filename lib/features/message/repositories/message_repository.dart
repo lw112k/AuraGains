@@ -161,6 +161,7 @@ class MessageRepository {
       final data = await _supabase
           .from('user')
           .select('user_id, username, profile_pic_url')
+          .eq('system_role', 'user')
           .ilike('username', '%$query%')
           .limit(10); 
           

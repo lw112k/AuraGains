@@ -55,10 +55,6 @@ void main() async {
     DevicePreview(
       enabled: !kReleaseMode,
       builder: (context) => MultiProvider(
-        // 👇 THE MASTER PROVIDER LIST 👇
-        // CRITICAL RULE: If you build a new ViewModel for your feature,
-        // YOU MUST ADD IT TO THIS LIST! If you don't, your screen will crash
-        // with a "ProviderNotFoundException" red screen of death.
         providers: [
           // 1. Auth Station (Master Access)
           // The cascade operator (..restoreSession()) triggers the login check
@@ -71,17 +67,8 @@ void main() async {
           // Handles data for Browse, Leaderboard, and Video Submissions.
           ChangeNotifierProvider(create: (_) => ChallengeViewModel()),
 
-          // -----------------------------------------------------------
-          // 🚨 TODO FOR TEAMMATES: ADD YOUR VIEWMODELS HERE! 🚨
-          // -----------------------------------------------------------
-          // Just copy the format above. For example:
-          //
-          // Post Feature:
-          // ChangeNotifierProvider(create: (_) => PostViewModel()),
-          //
-
           ChangeNotifierProvider(
-            create: (_) => WorkoutViewModel(repository: WorkoutRepository(),),
+            create: (_) => WorkoutViewModel(repository: WorkoutRepository()),
           ),
 
           ChangeNotifierProvider(

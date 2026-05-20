@@ -76,8 +76,10 @@ class AdminChallengeRepository {
     if (submissions.isEmpty) return [];
 
     // Batch fetch challenge names
-    final challIds =
-        submissions.map((s) => s['chall_id'] as int).toSet().toList();
+    final challIds = submissions
+        .map((s) => s['chall_id'] as int)
+        .toSet()
+        .toList();
     final Map<int, String> challengeNames = {};
     if (challIds.isNotEmpty) {
       try {
@@ -86,8 +88,7 @@ class AdminChallengeRepository {
             .select('chall_id, name')
             .inFilter('chall_id', challIds);
         for (final c in challengesData) {
-          challengeNames[c['chall_id'] as int] =
-              c['name'] as String;
+          challengeNames[c['chall_id'] as int] = c['name'] as String;
         }
       } catch (_) {
         // If batch fetch fails, names remain empty
@@ -109,35 +110,48 @@ class AdminChallengeRepository {
             .select('user_id, username')
             .inFilter('user_id', userIds);
         for (final u in usersData) {
-          usernames[u['user_id'] as String] =
-              u['username'] as String;
+          usernames[u['user_id'] as String] = u['username'] as String;
         }
       } catch (_) {}
     }
 
     return submissions
-        .map((s) => AdminChallengeSubmissionModel.fromJson(
-              s,
-              challengeName: challengeNames[s['chall_id'] as int] ?? '',
-              username: usernames[s['submitted_by'] ?? ''],
-            ))
+        .map(
+          (s) => AdminChallengeSubmissionModel.fromJson(
+            s,
+            challengeName: challengeNames[s['chall_id'] as int] ?? '',
+            username: usernames[s['submitted_by'] ?? ''],
+          ),
+        )
         .toList();
   }
 
   Future<void> approveSubmission(int challSubmissionId) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
     await _db
         .from('challenge_submission')
-        .update({'chall_status': 'approved'})
+        .update({
+          'chall_status': 'approved',
+          'verify_by': userId,
+          'verify_date': DateTime.now().toIso8601String(),
+        })
         .eq('chall_submission_id', challSubmissionId);
   }
 
-  Future<void> rejectSubmission(
-    int challSubmissionId,
-    String reason,
-  ) async {
-    await _db.from('challenge_submission').update({
-      'chall_status': 'rejected',
-      'reject_reason': reason,
-    }).eq('chall_submission_id', challSubmissionId);
+  Future<void> rejectSubmission(int challSubmissionId, String reason) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    await _db
+        .from('challenge_submission')
+        .update({
+          'chall_status': 'rejected',
+          'reject_reason': reason,
+          'verify_by': userId,
+          'verify_date': DateTime.now().toIso8601String(),
+        })
+        .eq('chall_submission_id', challSubmissionId);
   }
 }
