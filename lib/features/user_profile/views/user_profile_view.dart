@@ -627,8 +627,17 @@ class UserProfileView extends StatelessWidget {
             viewModel.isMe
                 ? 'You have no active workout protocol yet. Start one from the Workout tab!'
                 : '${viewModel.profile?.username ?? 'This user'} hasn\'t started any training protocols yet.',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          backgroundColor: const Color(0xFF2A2A2A),
+          backgroundColor: const Color(0xFF232323),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
       );
       return;
@@ -641,13 +650,21 @@ class UserProfileView extends StatelessWidget {
         SnackBar(
           content: Text(
             '${viewModel.profile?.username ?? 'This user'}\'s workout plan is private.',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          backgroundColor: const Color(0xFF2A2A2A),
+          backgroundColor: const Color(0xFF232323),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
         ),
       );
       return;
     }
-
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -1100,13 +1117,12 @@ class _PostPreviewTile extends StatelessWidget {
             if (postType == 'ask_expert')
               Positioned(
                 top: 6,
-                left: 6, 
+                left: 6,
                 child: Container(
-                  padding: const EdgeInsets.all(6), 
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: Colors.cyanAccent,
-                    shape: BoxShape
-                        .circle, 
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.5),
@@ -1115,8 +1131,7 @@ class _PostPreviewTile extends StatelessWidget {
                     ],
                   ),
                   child: const Icon(
-                    Icons
-                        .forum_outlined, 
+                    Icons.forum_outlined,
                     color: Colors.black,
                     size: 14,
                   ),

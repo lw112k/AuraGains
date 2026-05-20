@@ -393,7 +393,6 @@ class _ProtocolCreationViewState extends State<ProtocolCreationView> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
